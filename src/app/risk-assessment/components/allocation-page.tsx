@@ -335,7 +335,7 @@ export function AllocationPage({
                 درصد سرمایه‌گذاری خود را برای هر صندوق مشخص کنید
               </p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pb-8">
               {/* Fund Allocation List */}
               <div className="space-y-4">
                 {selectedFunds.map((fund) => {

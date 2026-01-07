@@ -27,8 +27,17 @@ const categoryColors: Record<string, string> = {
 
 export function FundCard({ fund, isSelected = false, onToggle, className }: FundCardProps) {
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const hasHandledTouchRef = useRef(false);
 
   const handleClick = (e: React.MouseEvent) => {
+    // Prevent click if we've already handled a touch event
+    if (hasHandledTouchRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      hasHandledTouchRef.current = false;
+      return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
     onToggle?.();
@@ -41,6 +50,7 @@ export function FundCard({ fund, isSelected = false, onToggle, className }: Fund
       y: touch.clientY,
       time: Date.now(),
     };
+    hasHandledTouchRef.current = false;
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -55,7 +65,13 @@ export function FundCard({ fund, isSelected = false, onToggle, className }: Fund
     if (deltaX < 10 && deltaY < 10 && deltaTime < 300) {
       e.preventDefault();
       e.stopPropagation();
+      hasHandledTouchRef.current = true;
       onToggle?.();
+      
+      // Reset the flag after a short delay to allow click event to be prevented
+      setTimeout(() => {
+        hasHandledTouchRef.current = false;
+      }, 300);
     }
 
     touchStartRef.current = null;

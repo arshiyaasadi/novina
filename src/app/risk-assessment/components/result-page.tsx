@@ -206,7 +206,7 @@ export function ResultPage({
 
   return (
     <>
-      <div className={cn("flex-1 flex items-start justify-center px-4 py-8", className)}>
+      <div className={cn("flex-1 flex items-start justify-center px-4 py-8 overflow-y-auto pb-32", className)}>
         <div className="w-full max-w-2xl space-y-6">
           <Card className="border-2 relative">
           {/* Restart Button - Absolute positioned top right */}
@@ -243,7 +243,7 @@ export function ResultPage({
             ) : null}
           </CardHeader>
           {displayResult && !isLoading && !error && (
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pb-8">
               <div className="space-y-2">
                 <h3 className="font-semibold text-lg">پیشنهاد سرمایه‌گذاری:</h3>
                 <p className="text-muted-foreground leading-relaxed">{displayResult.recommendation}</p>
@@ -263,9 +263,6 @@ export function ResultPage({
                 selectedFundIds={selectedFundIds}
                 onToggleFund={handleToggleFund}
               />
-              
-              {/* Spacer for fixed button */}
-              <div className="h-32" />
             </CardContent>
           )}
         </Card>
