@@ -1,0 +1,111 @@
+﻿@font-face {
+  font-family: 'IRANSans';
+  src: url('./IRANSansWeb_Light.woff2') format('woff2'),
+    url('./IRANSansWeb_Light.woff') format('woff'),
+    url('./IRANSansWeb_Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IRANSans';
+  src: url('./IRANSansWeb_Regular.woff2') format('woff2'),
+    url('./IRANSansWeb_Regular.woff') format('woff'),
+    url('./IRANSansWeb_Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IRANSans';
+  src: url('./IRANSansWeb_Bold.woff2') format('woff2'),
+    url('./IRANSansWeb_Bold.woff') format('woff'),
+    url('./IRANSansWeb_Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IRANSans';
+  src: url('./IRANSansWeb_Black.woff2') format('woff2'),
+    url('./IRANSansWeb_Black.woff') format('woff'),
+    url('./IRANSansWeb_Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Legacy font-family names for backward compatibility */
+@font-face {
+  font-family: 'iranSansBold';
+  src: url('./IRANSansWeb_Bold.ttf') format('ttf'), /* IE6–8 */ url('./IRANSansWeb_Bold.woff2') format('woff2'),
+    /* Chrome36+, Opera24+*/ url('./IRANSansWeb_Bold.woff') format('woff'); /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: 'iranSansBlack';
+  src: url('./IRANSansWeb_Black.ttf') format('ttf'), /* IE6–8 */ url('./IRANSansWeb_Black.woff2') format('woff2'),
+    /* Chrome36+, Opera24+*/ url('./IRANSansWeb_Black.woff') format('woff'); /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+  font-weight: 900;
+}
+
+@font-face {
+  font-family: 'iranSansUltraLight';
+  src: url('./IRANSansWeb_Regular.ttf') format('ttf'), /* IE6–8 */ url('./IRANSansWeb_Regular.woff2') format('woff2'),
+    /* Chrome36+, Opera24+*/ url('./IRANSansWeb_Regular.woff') format('woff'); /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+  font-weight: 200;
+}
+
+@font-face {
+  font-family: 'iranSansLight';
+  src: url('./IRANSansWeb_Light.ttf') format('ttf'), /* IE6–8 */ url('./IRANSansWeb_Light.woff2') format('woff2'),
+    /* Chrome36+, Opera24+*/ url('./IRANSansWeb_Light.woff') format('woff'); /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: 'iranSansRegular';
+  src: url('./IRANSansWeb_Regular.ttf') format('ttf'), /* IE6–8 */ url('./IRANSansWeb_Regular.woff2') format('woff2'),
+    /* Chrome36+, Opera24+*/ url('./IRANSansWeb_Regular.woff') format('woff'); /* FF3.6+, IE9, Chrome6+, Saf5.1+*/
+  font-weight: normal;
+}
+
+body,
+* {
+  font-family: iranSansRegular !important;
+  font-weight: normal;
+}
+
+.IRANSansUltraLight {
+  font-family: iranSansUltraLight !important;
+  font-weight: 200;
+}
+
+.IRANSansLight {
+  font-family: iranSansLight !important;
+  font-weight: 300;
+}
+
+.IRANSans {
+  font-family: iranSansRegular !important;
+  font-weight: normal;
+}
+
+.IRANSansBold {
+  font-family: iranSansBold !important;
+  font-weight: bold;
+}
+
+.IRANSansBlack {
+  font-family: iranSansBlack !important;
+  font-weight: 900;
+}
+
+.Toastify__toast-body {
+  font-family: iranSansRegular !important;
+  font-weight: normal;
+}

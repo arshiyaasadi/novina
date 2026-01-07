@@ -1,0 +1,84 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "back": "Back"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?"
+  },
+  "navigation": {
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact Us"
+  },
+  "app": {
+    "name": "Novina",
+    "navigation": {
+      "home": "Home",
+      "assets": "Assets",
+      "activities": "Activities",
+      "profile": "Profile"
+    },
+    "profile": {
+      "title": "Profile",
+      "userInfo": {
+        "title": "User Information",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email"
+      },
+      "verification": {
+        "title": "Verification",
+        "status": {
+          "none": "Not Verified",
+          "basic": "Basic",
+          "advanced": "Advanced"
+        },
+        "alert": {
+          "title": "Complete Your Verification",
+          "message": "To start investing without limitations, please complete your verification.",
+          "completeButton": "Complete Verification"
+        }
+      },
+      "settings": {
+        "title": "App Settings",
+        "about": "About Us",
+        "activityHistory": "Recent Activity History",
+        "logout": "Logout"
+      }
+    },
+    "activities": {
+      "emptyState": {
+        "title": "No activities recorded yet",
+        "description": "When you have activities, they will be displayed here"
+      },
+      "filter": {
+        "date": "Date",
+        "type": "Type"
+      }
+    },
+    "assets": {
+      "emptyState": {
+        "title": "No assets yet",
+        "description": "To start investing, click the button below",
+        "investButton": "Invest in Portfolio"
+      }
+    }
+  }
+}
+

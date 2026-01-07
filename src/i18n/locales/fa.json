@@ -1,0 +1,112 @@
+{
+  "common": {
+    "welcome": "خوش آمدید",
+    "loading": "در حال بارگذاری...",
+    "error": "خطا",
+    "success": "موفق",
+    "cancel": "لغو",
+    "confirm": "تایید",
+    "save": "ذخیره",
+    "delete": "حذف",
+    "edit": "ویرایش",
+    "create": "ایجاد",
+    "search": "جستجو",
+    "back": "بازگشت"
+  },
+  "auth": {
+    "logout": "خروج",
+    "register": "ثبت نام",
+    "email": "ایمیل",
+    "password": "رمز عبور",
+    "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
+    "initialLoading": {
+      "projectName": "نوینآ"
+    },
+    "splash": {
+      "slide1": {
+        "title": "سرمایه گزاری نوین و امن\nبا نوینآ از الف شروع میکنیم"
+      },
+      "slide2": {
+        "title": "ریسک رو محاسبه میکنیم پیشنهاد میدیم و پورتفوی رو آماده سرمایه گذاری میکنیم"
+      },
+      "slide3": {
+        "title": "مبلغی که میخوای سرمایه گذاری بکنی رو ۷۰ % وام بگیر و سرمایه گزاریت رو شروع کن"
+      },
+      "next": "بعدی",
+      "continue": "ادامه",
+      "previous": "قبلی",
+      "skip": "رد کردن"
+    },
+    "login": {
+      "phoneNumber": "شماره همراه",
+      "phonePlaceholder": "09",
+      "continue": "ادامه",
+      "otpTitle": "کد تایید",
+      "otpDescription": "کد تایید به شماره {phone} ارسال شد",
+      "resendCode": "دریافت مجدد کد",
+      "verify": "تایید",
+      "phoneVerificationMessage": "برای احراز هویت شماره همراه باید متعلق به خودت باشه.",
+      "changePhoneNumber": "تغییر شماره همراه"
+    }
+  },
+  "navigation": {
+    "home": "خانه",
+    "about": "درباره",
+    "contact": "تماس با ما"
+  },
+  "app": {
+    "name": "نوینآ",
+    "navigation": {
+      "home": "خانه",
+      "assets": "مدیریت دارایی",
+      "activities": "فعالیت‌ها",
+      "profile": "پروفایل"
+    },
+    "profile": {
+      "title": "پروفایل",
+      "userInfo": {
+        "title": "اطلاعات کاربر",
+        "firstName": "نام",
+        "lastName": "نام خانوادگی",
+        "email": "ایمیل"
+      },
+      "verification": {
+        "title": "احراز هویت",
+        "status": {
+          "none": "بدون احراز",
+          "basic": "پایه",
+          "advanced": "پیشرفته"
+        },
+        "alert": {
+          "title": "احراز هویت خود را کامل کنید",
+          "message": "برای شروع سرمایه‌گذاری بدون محدودیت، لطفاً احراز هویت خود را تکمیل کنید.",
+          "completeButton": "تکمیل احراز هویت"
+        }
+      },
+      "settings": {
+        "title": "تنظیمات برنامه",
+        "about": "درباره ما",
+        "activityHistory": "آخرین تاریخچه فعالیت",
+        "logout": "خروج"
+      }
+    },
+    "activities": {
+      "emptyState": {
+        "title": "هنوز فعالیتی ثبت نشده برات",
+        "description": "وقتی فعالیتی داشته باشی، اینجا نمایش داده می‌شه"
+      },
+      "filter": {
+        "date": "تاریخ",
+        "type": "نوع"
+      }
+    },
+    "assets": {
+      "emptyState": {
+        "title": "هنوز دارایی ثبت نشده",
+        "description": "برای شروع سرمایه‌گذاری، روی دکمه زیر کلیک کن",
+        "investButton": "سرمایه گذاری روی پورتفوی"
+      }
+    }
+  }
+}
+
