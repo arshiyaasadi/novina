@@ -26,9 +26,26 @@ npm install
 cp .env.example .env.local
 ```
 
-2. متغیرهای محیطی را تنظیم کنید
+2. متغیرهای محیطی را تنظیم کنید:
+
+**متغیرهای الزامی:**
+- `DATABASE_URL`: مسیر دیتابیس (مثلاً `file:./prisma/dev.db`)
+- `NODE_ENV`: محیط اجرا (`development` یا `production`)
+
+**متغیرهای GAPGPT (الزامی برای ارزیابی ریسک):**
+- `GAPGPT_API_KEY`: کلید API برای سرویس GAPGPT
+- `GAPGPT_BASE_URL`: URL پایه سرویس GAPGPT
+- `GAPGPT_MODEL`: نام مدل AI برای استفاده
+
+**متغیرهای اختیاری:**
+- `LOG_LEVEL`: سطح لاگ (پیش‌فرض: `info`)
+- `LOG_FILE_PATH`: مسیر فایل لاگ (پیش‌فرض: `./logs/app.log`)
+- `NEXT_PUBLIC_APP_URL`: URL عمومی اپلیکیشن (پیش‌فرض: `http://localhost:3000`)
+- `NEXT_PUBLIC_DEFAULT_LOCALE`: زبان پیش‌فرض (پیش‌فرض: `fa`)
 
 ### راه‌اندازی دیتابیس
+
+> **نکته**: در فاز ۱، Prisma غیرفعال است و از localStorage استفاده می‌شود. دستورات زیر برای فاز ۲ آماده هستند.
 
 ```bash
 # Generate Prisma Client
@@ -40,6 +57,8 @@ yarn db:push
 # یا برای migration
 yarn db:migrate
 ```
+
+**برای فاز ۱**: نیازی به راه‌اندازی دیتابیس نیست. داده‌ها در localStorage ذخیره می‌شوند.
 
 ### اجرای پروژه
 

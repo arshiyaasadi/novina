@@ -7,22 +7,30 @@
 ### Required Variables
 
 ```env
-DATABASE_URL=file:./dev.db
+DATABASE_URL=file:./prisma/dev.db
 NODE_ENV=production
 LOG_LEVEL=info
 LOG_FILE_PATH=./logs/app.log
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 NEXT_PUBLIC_DEFAULT_LOCALE=fa
+
+# GAPGPT AI Configuration (برای ارزیابی ریسک)
+GAPGPT_API_KEY=your_gapgpt_api_key_here
+GAPGPT_BASE_URL=your_gapgpt_base_url_here
+GAPGPT_MODEL=your_gapgpt_model_here
 ```
 
 ### Production Variables
 
 برای production، این متغیرها را تنظیم کنید:
 
-- `DATABASE_URL`: مسیر دیتابیس production
+- `DATABASE_URL`: مسیر دیتابیس production (در حال حاضر استفاده نمی‌شود چون Prisma غیرفعال است)
 - `NODE_ENV`: `production`
 - `LOG_LEVEL`: `warn` یا `error`
 - `NEXT_PUBLIC_APP_URL`: URL اصلی اپلیکیشن
+- `GAPGPT_API_KEY`: کلید API برای سرویس GAPGPT (الزامی برای ارزیابی ریسک)
+- `GAPGPT_BASE_URL`: URL پایه سرویس GAPGPT (الزامی برای ارزیابی ریسک)
+- `GAPGPT_MODEL`: نام مدل AI برای استفاده (الزامی برای ارزیابی ریسک)
 
 ## Build Process
 
@@ -62,9 +70,10 @@ yarn start
 4. Deploy کنید
 
 **نکات:**
-- Prisma migrations به صورت خودکار اجرا می‌شوند
+- Prisma migrations به صورت خودکار اجرا می‌شوند (در فاز ۲)
 - Build command: `yarn build`
 - Output directory: `.next`
+- **مهم**: حتماً متغیرهای GAPGPT را تنظیم کنید وگرنه ارزیابی ریسک کار نمی‌کند
 
 ### Docker
 
@@ -82,7 +91,9 @@ yarn start
 
 ## Database Migration
 
-در production، migrations را به صورت دستی اجرا کنید:
+> **نکته**: در فاز ۱، Prisma غیرفعال است و نیازی به migration نیست. دستورات زیر برای فاز ۲ آماده هستند.
+
+در production (فاز ۲)، migrations را به صورت دستی اجرا کنید:
 
 ```bash
 yarn db:migrate

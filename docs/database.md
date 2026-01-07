@@ -1,8 +1,21 @@
 # ساختار دیتابیس
 
+## وضعیت فعلی
+
+> **⚠️ توجه**: در فاز ۱، Prisma Client غیرفعال است و از localStorage برای ذخیره داده‌های موقت استفاده می‌شود. کد Prisma در پروژه موجود است اما کامنت شده است.
+
+### استفاده از localStorage
+
+در فاز ۱، داده‌های زیر در localStorage ذخیره می‌شوند:
+- پورتفوی کاربر (`portfolio`)
+- سرمایه‌گذاری‌های کاربر (`investments`, `latestInvestment`)
+- وضعیت پرداخت اقساط (`installment_*_paid`)
+
+این رویکرد برای توسعه و تست مناسب است اما در فاز ۲ باید به دیتابیس واقعی منتقل شود.
+
 ## Prisma Schema
 
-Schema در `prisma/schema.prisma` تعریف شده است.
+Schema در `prisma/schema.prisma` تعریف شده است. در حال حاضر Prisma Client غیرفعال است اما schema برای استفاده در آینده آماده است.
 
 ## Models
 
@@ -13,6 +26,8 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  firstName String?
+  lastName  String?
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -26,7 +41,9 @@ model User {
 **Fields:**
 - `id`: شناسه یکتا (CUID)
 - `email`: ایمیل کاربر (یکتا)
-- `name`: نام کاربر (اختیاری)
+- `name`: نام کاربر (اختیاری) - برای سازگاری با نسخه‌های قبلی
+- `firstName`: نام کاربر (اختیاری)
+- `lastName`: نام خانوادگی کاربر (اختیاری)
 - `password`: رمز عبور (باید hash شود)
 - `createdAt`: تاریخ ایجاد
 - `updatedAt`: تاریخ آخرین بروزرسانی
@@ -68,7 +85,20 @@ model Content {
 **Indexes:**
 - `authorId`: برای جستجوی سریع‌تر محتواهای یک نویسنده
 
+## فعال‌سازی Prisma (فاز ۲)
+
+برای فعال‌سازی Prisma در فاز ۲:
+
+1. فایل `src/infrastructure/database/prisma.ts` را uncomment کنید
+2. فایل‌های repository را uncomment کنید (مثلاً `src/domains/auth/repositories/user.repository.ts`)
+3. Migration را اجرا کنید:
+   ```bash
+   yarn db:migrate
+   ```
+
 ## Migration Guide
+
+> **نکته**: در حال حاضر Prisma غیرفعال است. دستورات زیر برای استفاده در فاز ۲ آماده هستند.
 
 ### ایجاد Migration
 
@@ -127,10 +157,10 @@ yarn db:studio
 در `.env.local`:
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="file:./prisma/dev.db"
 ```
 
-برای SQLite، مسیر فایل دیتابیس را مشخص کنید.
+برای SQLite، مسیر فایل دیتابیس را مشخص کنید. در حال حاضر این متغیر استفاده نمی‌شود چون Prisma غیرفعال است.
 
 ## Backup
 

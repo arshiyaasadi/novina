@@ -23,7 +23,7 @@ This document outlines all prerequisites and setup steps required before startin
 ### Database
 
 - [x] **Prisma Schema Defined** - Located in `prisma/schema.prisma`
-- [ ] **Database Initialized**
+- [ ] **Database Initialized** (برای فاز ۲)
   ```bash
   yarn db:generate  # Generate Prisma Client
   yarn db:push      # Create database and apply schema
@@ -31,6 +31,8 @@ This document outlines all prerequisites and setup steps required before startin
   yarn db:migrate   # Use migrations (recommended for production)
   ```
 - [ ] **Database Connection Verified** - Test with `yarn db:studio`
+
+> **⚠️ توجه**: در فاز ۱، Prisma Client غیرفعال است و از localStorage برای ذخیره داده‌ها استفاده می‌شود. نیازی به راه‌اندازی دیتابیس نیست.
 
 ### Authentication & Security
 
@@ -69,12 +71,19 @@ cp .env.example .env.local
 
 # Edit .env.local with your values
 # Required variables:
-# - DATABASE_URL
+# - DATABASE_URL (for Phase 2, currently not used)
 # - NODE_ENV
+# - GAPGPT_API_KEY (required for risk assessment)
+# - GAPGPT_BASE_URL (required for risk assessment)
+# - GAPGPT_MODEL (required for risk assessment)
 # - LOG_LEVEL (optional, defaults to "info")
 ```
 
 ### 3. Database Setup
+
+> **نکته**: در فاز ۱، Prisma غیرفعال است و نیازی به راه‌اندازی دیتابیس نیست. داده‌ها در localStorage ذخیره می‌شوند.
+
+برای فاز ۲ (زمانی که Prisma فعال شود):
 
 ```bash
 # Generate Prisma Client
@@ -115,10 +124,13 @@ curl -X POST http://localhost:3000/api/auth/register \
 
 ### Required Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | Prisma database connection string | `file:./prisma/dev.db` |
-| `NODE_ENV` | Environment mode | `development` or `production` |
+| Variable | Description | Example | Notes |
+|----------|-------------|---------|-------|
+| `DATABASE_URL` | Prisma database connection string | `file:./prisma/dev.db` | برای فاز ۲ (فعلاً استفاده نمی‌شود) |
+| `NODE_ENV` | Environment mode | `development` or `production` | - |
+| `GAPGPT_API_KEY` | API key for GAPGPT service | `your_api_key_here` | **الزامی برای ارزیابی ریسک** |
+| `GAPGPT_BASE_URL` | Base URL for GAPGPT service | `https://api.example.com` | **الزامی برای ارزیابی ریسک** |
+| `GAPGPT_MODEL` | AI model name to use | `gpt-4` | **الزامی برای ارزیابی ریسک** |
 
 ### Optional Variables
 
@@ -147,6 +159,7 @@ novina/
 │   ├── domains/          # Domain-based structure
 │   │   ├── auth/         # Authentication domain
 │   │   ├── content/      # Content domain
+│   │   ├── risk/         # Risk assessment domain
 │   │   └── user/         # User domain
 │   ├── shared/           # Shared utilities
 │   │   ├── lib/          # Utility functions
@@ -168,12 +181,14 @@ novina/
 - [x] Next.js 14
 - [x] React 18
 - [x] TypeScript 5
-- [x] Prisma
+- [x] Prisma (currently disabled in Phase 1)
 - [x] Tailwind CSS
 - [x] next-intl
 - [x] Winston (logging)
 - [x] bcryptjs (password hashing)
 - [x] Zod (validation)
+- [x] OpenAI SDK (for GAPGPT integration)
+- [x] Chart.js + react-chartjs-2 (for portfolio charts)
 
 ### Verify Installation
 
@@ -186,14 +201,16 @@ yarn install
 
 ## Known Limitations / TODOs
 
-### Current Limitations
+### Current Limitations (Phase 1)
 
-1. **JWT Authentication** - Not yet implemented (planned)
-2. **Session Management** - Not yet implemented (planned)
-3. **Password Reset** - Not yet implemented
-4. **Email Verification** - Not yet implemented
-5. **Rate Limiting** - Not yet implemented
-6. **Testing Framework** - Not yet set up
+1. **Prisma Disabled** - Prisma Client is currently disabled. Data is stored in localStorage. Will be enabled in Phase 2.
+2. **JWT Authentication** - Not yet implemented (planned for Phase 2)
+3. **Session Management** - Not yet implemented (planned for Phase 2)
+4. **Password Reset** - Not yet implemented
+5. **Email Verification** - Not yet implemented
+6. **Rate Limiting** - Not yet implemented
+7. **Testing Framework** - Not yet set up
+8. **Database Persistence** - Currently using localStorage. Will migrate to database in Phase 2.
 
 ### Future Enhancements
 
@@ -210,10 +227,11 @@ yarn install
 ### Starting Development
 
 1. Ensure all prerequisites are met
-2. Environment variables are configured
-3. Database is set up and migrated
+2. Environment variables are configured (especially GAPGPT variables for risk assessment)
+3. Database setup is optional in Phase 1 (Prisma is disabled)
 4. Development server runs without errors
 5. API endpoints respond correctly
+6. Risk assessment feature works (requires GAPGPT configuration)
 
 ### Before Starting a New Feature
 
@@ -251,8 +269,10 @@ yarn db:studio
 ### Environment Issues
 
 - Verify `.env.local` exists and has correct values
-- Check `DATABASE_URL` format (for SQLite: `file:./prisma/dev.db`)
+- Check `DATABASE_URL` format (for SQLite: `file:./prisma/dev.db`) - Optional in Phase 1
 - Ensure `NODE_ENV` is set correctly
+- **Important**: Verify GAPGPT variables are set correctly (`GAPGPT_API_KEY`, `GAPGPT_BASE_URL`, `GAPGPT_MODEL`) - Required for risk assessment
+- If risk assessment fails, check GAPGPT configuration
 
 ### Dependency Issues
 
