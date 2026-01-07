@@ -8,7 +8,7 @@ export default function InvoiceLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen items-center justify-center overflow-hidden p-4">
+    <div className="flex min-h-[100dvh] h-[100dvh] items-center justify-center p-4">
       <div className="flex w-full max-w-[480px] h-full flex-col overflow-hidden bg-background">
         {/* Top Navbar */}
         <TopNavbar />

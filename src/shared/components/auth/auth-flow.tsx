@@ -21,7 +21,7 @@ export function AuthFlow() {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center overflow-hidden p-4">
+    <div className="flex min-h-[100dvh] h-[100dvh] items-center justify-center p-4">
       <div className="w-full max-w-[480px] h-full overflow-hidden">
         {step === "loading" && (
           <InitialLoading onComplete={handleLoadingComplete} />
