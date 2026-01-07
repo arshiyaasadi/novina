@@ -4,7 +4,6 @@ import { Fund } from "../data/funds";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/utils";
 import { Check } from "lucide-react";
-import { useRef } from "react";
 
 interface FundCardProps {
   fund: Fund;
@@ -26,55 +25,9 @@ const categoryColors: Record<string, string> = {
 };
 
 export function FundCard({ fund, isSelected = false, onToggle, className }: FundCardProps) {
-  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
-  const hasHandledTouchRef = useRef(false);
-
   const handleClick = (e: React.MouseEvent) => {
-    // Prevent click if we've already handled a touch event
-    if (hasHandledTouchRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-      hasHandledTouchRef.current = false;
-      return;
-    }
-    
-    e.preventDefault();
     e.stopPropagation();
     onToggle?.();
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    touchStartRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-      time: Date.now(),
-    };
-    hasHandledTouchRef.current = false;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
-
-    const touch = e.changedTouches[0];
-    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
-    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
-    const deltaTime = Date.now() - touchStartRef.current.time;
-
-    // Only trigger if it's a tap (not a swipe) and within reasonable time
-    if (deltaX < 10 && deltaY < 10 && deltaTime < 300) {
-      e.preventDefault();
-      e.stopPropagation();
-      hasHandledTouchRef.current = true;
-      onToggle?.();
-      
-      // Reset the flag after a short delay to allow click event to be prevented
-      setTimeout(() => {
-        hasHandledTouchRef.current = false;
-      }, 300);
-    }
-
-    touchStartRef.current = null;
   };
 
   return (
@@ -86,8 +39,6 @@ export function FundCard({ fund, isSelected = false, onToggle, className }: Fund
         className
       )}
       onClick={handleClick}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
     >
       <CardHeader className="pb-3">
