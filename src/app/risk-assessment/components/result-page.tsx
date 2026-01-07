@@ -82,14 +82,22 @@ export function ResultPage({
   
   // Use external state if provided, otherwise use internal state
   const selectedFundIds = externalSelectedFundIds ?? internalSelectedFundIds;
+  const selectedFundIdsRef = useRef(selectedFundIds);
+  
+  // Keep ref in sync with current value
+  useEffect(() => {
+    selectedFundIdsRef.current = selectedFundIds;
+  }, [selectedFundIds]);
+  
   const setSelectedFundIds = useCallback((value: React.SetStateAction<number[]>) => {
     if (onSelectedFundsChange) {
-      const newValue = typeof value === 'function' ? value(selectedFundIds) : value;
+      // Use ref to get the latest value, not the closure value
+      const newValue = typeof value === 'function' ? value(selectedFundIdsRef.current) : value;
       onSelectedFundsChange(newValue);
     } else {
       setInternalSelectedFundIds(value);
     }
-  }, [onSelectedFundsChange, selectedFundIds]);
+  }, [onSelectedFundsChange]);
 
   // Generate clean answer data JSON for AI - memoized to prevent loop
   const answerData = useMemo(() => {
@@ -186,11 +194,11 @@ export function ResultPage({
   }, [displayResult?.profile, setSelectedFundIds]);
 
   const handleToggleFund = (fundId: number) => {
-    setSelectedFundIds((prev: number[]) => 
-      prev.includes(fundId)
+    setSelectedFundIds((prev: number[]) => {
+      return prev.includes(fundId)
         ? prev.filter(id => id !== fundId)
-        : [...prev, fundId]
-    );
+        : [...prev, fundId];
+    });
   };
 
   const handleContinue = () => {
