@@ -364,7 +364,7 @@ function InstallmentsPageContent() {
           <CardContent className="p-6 text-center space-y-4">
             <p className="text-muted-foreground">سرمایه‌گذاری وجود ندارد</p>
             <Button
-              onClick={() => router.push("/app/activities")}
+              onClick={() => router.push("/app")}
               variant="outline"
             >
               بازگشت به فعالیت‌ها
@@ -382,7 +382,7 @@ function InstallmentsPageContent() {
           <CardContent className="p-6 text-center space-y-4">
             <p className="text-muted-foreground">این سرمایه‌گذاری از وام استفاده نکرده است</p>
             <Button
-              onClick={() => router.push("/app/activities")}
+              onClick={() => router.push("/app")}
               variant="outline"
             >
               بازگشت به فعالیت‌ها
@@ -406,7 +406,7 @@ function InstallmentsPageContent() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push("/app/activities")}
+            onClick={() => router.push("/app")}
             className="gap-2"
           >
             بازگشت
