@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { RiskResult, Question, getRiskResultByProfile } from "../data/questions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
@@ -82,7 +82,14 @@ export function ResultPage({
   
   // Use external state if provided, otherwise use internal state
   const selectedFundIds = externalSelectedFundIds ?? internalSelectedFundIds;
-  const setSelectedFundIds = onSelectedFundsChange ?? setInternalSelectedFundIds;
+  const setSelectedFundIds = useCallback((value: React.SetStateAction<number[]>) => {
+    if (onSelectedFundsChange) {
+      const newValue = typeof value === 'function' ? value(selectedFundIds) : value;
+      onSelectedFundsChange(newValue);
+    } else {
+      setInternalSelectedFundIds(value);
+    }
+  }, [onSelectedFundsChange, selectedFundIds]);
 
   // Generate clean answer data JSON for AI - memoized to prevent loop
   const answerData = useMemo(() => {
@@ -179,7 +186,7 @@ export function ResultPage({
   }, [displayResult?.profile, setSelectedFundIds]);
 
   const handleToggleFund = (fundId: number) => {
-    setSelectedFundIds(prev => 
+    setSelectedFundIds((prev: number[]) => 
       prev.includes(fundId)
         ? prev.filter(id => id !== fundId)
         : [...prev, fundId]

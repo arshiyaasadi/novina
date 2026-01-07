@@ -1,11 +1,11 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Button } from "@/shared/ui/button";
 import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 
-export default function ReceiptPage() {
+function ReceiptPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [amount, setAmount] = useState<string>("");
@@ -91,6 +91,14 @@ export default function ReceiptPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function ReceiptPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <ReceiptPageContent />
+    </Suspense>
   );
 }
 

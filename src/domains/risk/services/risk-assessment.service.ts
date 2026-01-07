@@ -45,11 +45,11 @@ export class RiskAssessmentService {
         model: this.model,
         messages: [
           {
-            role: "system",
+            role: "system" as const,
             content: "شما یک ارزیاب حرفه‌ای ریسک سرمایه‌گذاری هستید. وظیفه شما تحلیل پاسخ‌های کاربر و تعیین سطح ریسک‌پذیری او است.",
           },
           {
-            role: "user",
+            role: "user" as const,
             content: prompt,
           },
         ],

@@ -1,4 +1,5 @@
-import { Content as PrismaContent } from "@prisma/client";
+// Prisma is currently disabled - PrismaContent type is not available
+// import { Content as PrismaContent } from "@prisma/client";
 
 export class Content {
   constructor(
@@ -11,16 +12,17 @@ export class Content {
     public updatedAt: Date
   ) {}
 
-  static fromPrisma(content: PrismaContent): Content {
-    return new Content(
-      content.id,
-      content.title,
-      content.body,
-      content.published,
-      content.authorId,
-      content.createdAt,
-      content.updatedAt
-    );
-  }
+  // Prisma is disabled - this method is not used
+  // static fromPrisma(content: PrismaContent): Content {
+  //   return new Content(
+  //     content.id,
+  //     content.title,
+  //     content.body,
+  //     content.published,
+  //     content.authorId,
+  //     content.createdAt,
+  //     content.updatedAt
+  //   );
+  // }
 }
 

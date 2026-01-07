@@ -123,14 +123,17 @@ export function PhoneLogin({ onContinue, onVerify }: PhoneLoginProps) {
   };
 
   const handleVerify = () => {
-    if (isOtpComplete && onVerify) {
+    // Remove condition - allow verify even if OTP is not complete
+    if (onVerify) {
       onVerify(otp.join(""));
     }
   };
 
   const handleOtpComplete = (value: string) => {
-    // Auto-verify when all 4 digits are entered (optional)
-    // For now, we'll require manual button click
+    // Auto-verify when all 4 digits are entered
+    if (onVerify) {
+      onVerify(value);
+    }
   };
 
   const handleEditPhone = () => {
@@ -173,19 +176,15 @@ export function PhoneLogin({ onContinue, onVerify }: PhoneLoginProps) {
       <div className="relative flex h-full flex-col overflow-hidden">
       {/* Logo and project name - animated position */}
       {step === "phoneEntry" ? (
-        // Phone entry: Logo on top, name below, both centered
+        // Phone entry: Div on top, name below, both centered
         <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 transition-all duration-500 ease-in-out">
           <div className="flex flex-col items-center gap-4">
-            <img 
-              src="/images/logo.png" 
-              alt="Logo" 
-              className="h-16 w-16 object-contain"
-            />
+            <div className="h-16 w-16 rounded-2xl border-2 border-primary bg-card" />
             <h1 className="text-2xl font-bold">{projectNameT("projectName")}</h1>
           </div>
         </div>
       ) : (
-        // OTP entry: Logo and name side by side in top right corner
+        // OTP entry: Div and name side by side in top right corner
         <div className="absolute right-4 top-4 z-10 flex items-center gap-3 transition-all duration-500 ease-in-out">
           <div className="h-16 w-16 rounded-2xl border-2 border-primary bg-card" />
           <h1 className="text-2xl font-bold">{projectNameT("projectName")}</h1>
@@ -296,7 +295,6 @@ export function PhoneLogin({ onContinue, onVerify }: PhoneLoginProps) {
           <Button
             type="button"
             onClick={handleVerify}
-            disabled={!isOtpComplete}
             className="w-full min-h-[44px]"
           >
             {t("verify")}

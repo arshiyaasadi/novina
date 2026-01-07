@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Clock, Calendar, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
 import { Button } from "@/shared/ui/button";
@@ -41,7 +41,7 @@ type Installment = {
   isOverdue: boolean;
 };
 
-export default function InstallmentsPage() {
+function InstallmentsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const t = useTranslations("app.installments");
@@ -729,6 +729,14 @@ export default function InstallmentsPage() {
         );
       })()}
     </div>
+  );
+}
+
+export default function InstallmentsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <InstallmentsPageContent />
+    </Suspense>
   );
 }
 

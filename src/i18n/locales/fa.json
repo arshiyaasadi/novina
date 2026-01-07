@@ -110,6 +110,11 @@
       "filter": {
         "date": "تاریخ",
         "type": "نوع"
+      },
+      "types": {
+        "investment": "سرمایه گذاری",
+        "loan": "دریافت وام",
+        "installment": "پرداخت قسط"
       }
     },
     "assets": {
@@ -149,13 +154,6 @@
         "3months": "۳ ماه",
         "6months": "۶ ماه",
         "9months": "۹ ماه"
-      }
-    },
-    "activities": {
-      "types": {
-        "investment": "سرمایه گذاری",
-        "loan": "دریافت وام",
-        "installment": "پرداخت قسط"
       }
     },
     "installments": {

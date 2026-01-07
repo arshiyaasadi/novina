@@ -15,19 +15,8 @@ export default function LoginPage() {
     // TODO: Call API to verify OTP
     console.log("OTP:", otp);
     
-    // Mock routing based on OTP
-    if (otp === "0000") {
-      // Navigate to risk assessment questions
-      router.push("/risk-assessment");
-    } else if (otp === "1111") {
-      // Navigate to app page
-      router.push("/app");
-    } else {
-      // For other OTPs, verify normally (TODO: implement actual API call)
-      console.log("Verifying OTP:", otp);
-      // After successful verification, navigate to app
-      // router.push("/app");
-    }
+    // Navigate to main app page after OTP verification
+    router.push("/app");
   };
 
   return <PhoneLogin onContinue={handleContinue} onVerify={handleVerify} />;

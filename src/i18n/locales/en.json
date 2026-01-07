@@ -82,6 +82,11 @@
       "filter": {
         "date": "Date",
         "type": "Type"
+      },
+      "types": {
+        "investment": "Investment",
+        "loan": "Loan Receipt",
+        "installment": "Installment Payment"
       }
     },
     "assets": {
@@ -121,13 +126,6 @@
         "3months": "3 months",
         "6months": "6 months",
         "9months": "9 months"
-      }
-    },
-    "activities": {
-      "types": {
-        "investment": "Investment",
-        "loan": "Loan Receipt",
-        "installment": "Installment Payment"
       }
     },
     "installments": {

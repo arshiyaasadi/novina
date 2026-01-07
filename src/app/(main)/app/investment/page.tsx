@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -16,7 +16,7 @@ const MIN_AMOUNT = 500000; // 500,000 Toman
 
 type LoanPeriod = 3 | 6 | 9 | null;
 
-export default function InvestmentPage() {
+function InvestmentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations("app.investment");
@@ -290,6 +290,14 @@ export default function InvestmentPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function InvestmentPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <InvestmentPageContent />
+    </Suspense>
   );
 }
 
