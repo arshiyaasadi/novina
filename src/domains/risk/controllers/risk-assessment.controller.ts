@@ -5,10 +5,13 @@ import { logger } from "@/infrastructure/logging";
 import { ErrorResponses } from "@/shared/types/errors";
 
 export class RiskAssessmentController {
-  private riskAssessmentService: RiskAssessmentService;
+  private riskAssessmentService: RiskAssessmentService | null = null;
 
-  constructor() {
-    this.riskAssessmentService = new RiskAssessmentService();
+  private getService(): RiskAssessmentService {
+    if (!this.riskAssessmentService) {
+      this.riskAssessmentService = new RiskAssessmentService();
+    }
+    return this.riskAssessmentService;
   }
 
   async evaluate(request: NextRequest) {
@@ -37,7 +40,7 @@ export class RiskAssessmentController {
         firstAnswer: evaluateRequest.answers[0]?.question?.substring(0, 50) + "...",
       });
 
-      const result = await this.riskAssessmentService.evaluateRisk(evaluateRequest);
+      const result = await this.getService().evaluateRisk(evaluateRequest);
 
       logger.info("Risk assessment evaluation completed", {
         profile: result.profile,
