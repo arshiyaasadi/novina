@@ -376,7 +376,13 @@ export default function AppPage() {
       <div className="w-full max-w-md mx-auto space-y-6">
         {/* Next Installment Due Date Card */}
         {nextInstallment && (
-          <Card className="border-primary/20 bg-primary/5">
+          <Card 
+            className="border-primary/20 bg-primary/5 cursor-pointer transition-all hover:bg-primary/10 hover:border-primary/30 active:scale-[0.98]"
+            onClick={() => {
+              router.push(`/app/activities/installments?index=${nextInstallment.investmentIndex}`);
+            }}
+            style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 flex-1">
@@ -394,14 +400,9 @@ export default function AppPage() {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    router.push(`/app/activities/installments?index=${nextInstallment.investmentIndex}`);
-                  }}
-                  className="p-2 rounded-lg hover:bg-primary/10 transition-colors flex-shrink-0"
-                >
+                <div className="p-2 rounded-lg flex-shrink-0">
                   <ArrowLeft className="w-5 h-5 text-primary" />
-                </button>
+                </div>
               </div>
             </CardContent>
           </Card>

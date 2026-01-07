@@ -25,14 +25,32 @@ const categoryColors: Record<string, string> = {
 };
 
 export function FundCard({ fund, isSelected = false, onToggle, className }: FundCardProps) {
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Only handle primary pointer (mouse left click or touch)
+    if (e.button !== 0 && e.pointerType !== 'touch') return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    onToggle?.();
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onToggle?.();
+  };
+
   return (
     <Card
       className={cn(
-        "h-full flex flex-col cursor-pointer transition-all hover:border-primary border",
+        "h-full flex flex-col cursor-pointer transition-all hover:border-primary border select-none",
+        "active:scale-[0.98] active:opacity-90",
         isSelected && "border-primary",
         className
       )}
-      onClick={onToggle}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">

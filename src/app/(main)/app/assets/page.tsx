@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Info, X, Plus, Minus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/shared/ui/dialog";
 import { getAllFunds, Fund } from "@/app/risk-assessment/data/funds";
@@ -65,79 +64,75 @@ export default function AssetsPage() {
   return (
     <div className="flex flex-col p-4 space-y-6">
       <div className="w-full max-w-md mx-auto space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>صندوق‌ها</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {funds.map((fund) => {
-              const price = getFundPrice(fund.id);
-              if (!price) return null;
+        <h2 className="text-xl font-bold">صندوق‌ها</h2>
+        <div className="space-y-3">
+          {funds.map((fund) => {
+            const price = getFundPrice(fund.id);
+            if (!price) return null;
 
-              const isPositive = price.change24h >= 0;
+            const isPositive = price.change24h >= 0;
 
-              return (
-                <div
-                  key={fund.id}
-                  className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-sm truncate">{fund.name}</h3>
-                        <button
-                          onClick={() => handleInfoClick(fund)}
-                          className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Info className="w-4 h-4" />
-                        </button>
+            return (
+              <div
+                key={fund.id}
+                className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-sm truncate">{fund.name}</h3>
+                      <button
+                        onClick={() => handleInfoClick(fund)}
+                        className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold tabular-nums">
+                          {formatPrice(price.currentPrice)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">تومان</span>
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold tabular-nums">
-                            {formatPrice(price.currentPrice)}
-                          </span>
-                          <span className="text-xs text-muted-foreground">تومان</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-sm font-medium tabular-nums ${
-                              isPositive ? "text-green-600" : "text-red-600"
-                            }`}
-                          >
-                            {isPositive ? "+" : ""}
-                            {price.change24h.toFixed(2)}%
-                          </span>
-                          <span className="text-xs text-muted-foreground">۲۴ ساعت گذشته</span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-sm font-medium tabular-nums ${
+                            isPositive ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          {isPositive ? "+" : ""}
+                          {price.change24h.toFixed(2)}%
+                        </span>
+                        <span className="text-xs text-muted-foreground">۲۴ ساعت گذشته</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleIssueClick}
-                      className="flex-1 border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Plus className="w-4 h-4 ml-2" />
-                      صدور
-                    </Button>
-                    <Button
-                      onClick={handleCancelClick}
-                      className="flex-1 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Minus className="w-4 h-4 ml-2" />
-                      ابطال
-                    </Button>
-                  </div>
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleIssueClick}
+                    className="flex-1 border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    صدور
+                  </Button>
+                  <Button
+                    onClick={handleCancelClick}
+                    className="flex-1 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Minus className="w-4 h-4 ml-2" />
+                    ابطال
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Fund Info Modal */}

@@ -357,10 +357,38 @@ function InstallmentsPageContent() {
     );
   }
 
-  if (!investment || !investment.useLoan || !investment.loanDetails) {
+  if (!investment) {
     return (
-      <div className="flex items-center justify-center h-full p-4">
-        <p className="text-muted-foreground">اطلاعات وام یافت نشد</p>
+      <div className="flex flex-col items-center justify-center h-full p-4 space-y-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center space-y-4">
+            <p className="text-muted-foreground">سرمایه‌گذاری وجود ندارد</p>
+            <Button
+              onClick={() => router.push("/app/activities")}
+              variant="outline"
+            >
+              بازگشت به فعالیت‌ها
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!investment.useLoan || !investment.loanDetails) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-4 space-y-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center space-y-4">
+            <p className="text-muted-foreground">این سرمایه‌گذاری از وام استفاده نکرده است</p>
+            <Button
+              onClick={() => router.push("/app/activities")}
+              variant="outline"
+            >
+              بازگشت به فعالیت‌ها
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -601,7 +629,7 @@ function InstallmentsPageContent() {
           </CardHeader>
           {isInstallmentsExpanded && (
             <CardContent className="space-y-2">
-              {installments.map((installment) => {
+              {installments.length > 0 ? installments.map((installment) => {
               const isPastDue = installment.dueDate < new Date();
               const isToday = installment.dueDate.toDateString() === new Date().toDateString();
 
@@ -676,7 +704,11 @@ function InstallmentsPageContent() {
                   </div>
                 </div>
               );
-            })}
+            }) : (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                هیچ قسطی یافت نشد
+              </div>
+            )}
             </CardContent>
           )}
         </Card>

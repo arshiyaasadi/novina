@@ -176,7 +176,7 @@ export function RiskWizard() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-[100dvh] min-h-[100dvh] flex flex-col bg-background overflow-hidden">
       {isOnQuestionPage && (
         <StepIndicator currentStep={currentStep} totalSteps={TOTAL_STEPS} />
       )}
