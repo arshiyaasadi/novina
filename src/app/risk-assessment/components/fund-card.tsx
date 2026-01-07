@@ -4,6 +4,7 @@ import { Fund } from "../data/funds";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/utils";
 import { Check } from "lucide-react";
+import { useRef } from "react";
 
 interface FundCardProps {
   fund: Fund;
@@ -25,19 +26,39 @@ const categoryColors: Record<string, string> = {
 };
 
 export function FundCard({ fund, isSelected = false, onToggle, className }: FundCardProps) {
-  const handlePointerDown = (e: React.PointerEvent) => {
-    // Only handle primary pointer (mouse left click or touch)
-    if (e.button !== 0 && e.pointerType !== 'touch') return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    onToggle?.();
-  };
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onToggle?.();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const deltaTime = Date.now() - touchStartRef.current.time;
+
+    // Only trigger if it's a tap (not a swipe) and within reasonable time
+    if (deltaX < 10 && deltaY < 10 && deltaTime < 300) {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggle?.();
+    }
+
+    touchStartRef.current = null;
   };
 
   return (
@@ -49,7 +70,8 @@ export function FundCard({ fund, isSelected = false, onToggle, className }: Fund
         className
       )}
       onClick={handleClick}
-      onPointerDown={handlePointerDown}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
     >
       <CardHeader className="pb-3">
