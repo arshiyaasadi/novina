@@ -6,7 +6,7 @@ import { VerificationSection } from "@/shared/components/profile/verification-se
 import { AppSettingsSection } from "@/shared/components/profile/app-settings-section";
 import { NationalIdModal } from "@/shared/components/profile/national-id-modal";
 
-// Mock data - در آینده از API یا context دریافت می‌شود
+// Mock data - will be fetched from API or context in the future
 const initialUserData = {
   firstName: null as string | null,
   lastName: null as string | null,
@@ -14,7 +14,7 @@ const initialUserData = {
   email: "ali.ahmadi@example.com",
 };
 
-// Mock last activity - در آینده از API دریافت می‌شود
+// Mock last activity - will be fetched from API in the future
 const mockLastActivity = "۲ روز پیش";
 
 export default function ProfilePage() {

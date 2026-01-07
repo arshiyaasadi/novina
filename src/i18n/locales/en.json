@@ -40,7 +40,8 @@
         "title": "User Information",
         "firstName": "First Name",
         "lastName": "Last Name",
-        "email": "Email"
+        "email": "Email",
+        "verifyButton": "Complete Basic Verification"
       },
       "verification": {
         "title": "Verification",
@@ -53,7 +54,18 @@
           "title": "Complete Your Verification",
           "message": "To start investing without limitations, please complete your verification.",
           "completeButton": "Complete Verification"
-        }
+        },
+        "modal": {
+          "title": "Basic Verification",
+          "description": "Please enter your national ID",
+          "usernameLabel": "Username",
+          "usernamePlaceholder": "Enter your username",
+          "nationalIdLabel": "National ID",
+          "submitButton": "Submit",
+          "submittingButton": "Submitting...",
+          "cancelButton": "Cancel"
+        },
+        "levelTitle": "Verification Level"
       },
       "settings": {
         "title": "App Settings",
@@ -77,6 +89,76 @@
         "title": "No assets yet",
         "description": "To start investing, click the button below",
         "investButton": "Invest in Portfolio"
+      }
+    },
+    "notifications": {
+      "srOnly": "Notifications",
+      "message": "Investment with Loan",
+      "title": "Investment with Loan",
+      "description": "You can receive up to 70% of your investment amount as a loan and invest in suggested funds."
+    },
+    "investment": {
+      "title": "Investment",
+      "guideText": "Enter investment amount",
+      "portfolioTitle": "Selected Portfolio:",
+      "amountLabel": "Investment Amount (Toman)",
+      "amountPlaceholder": "Example: 10,000,000",
+      "minAmount": "Minimum amount: {amount} Toman",
+      "loanCheckbox": "Get 70% of amount as loan",
+      "loanAmount": "Loan Amount:",
+      "loanPeriodTitle": "Repayment Period:",
+      "interest": "{interest}% interest",
+      "continue": "Continue",
+      "backToHome": "Back to Home",
+      "noPortfolioMessage": "Please set up your portfolio on the home page first.",
+      "errors": {
+        "invalidNumber": "Please enter only numbers",
+        "minAmount": "Minimum investment amount is {amount} Toman",
+        "required": "Please enter amount",
+        "saveError": "Error saving information"
+      },
+      "loanOptions": {
+        "3months": "3 months",
+        "6months": "6 months",
+        "9months": "9 months"
+      }
+    },
+    "activities": {
+      "types": {
+        "investment": "Investment",
+        "loan": "Loan Receipt",
+        "installment": "Installment Payment"
+      }
+    },
+    "installments": {
+      "settlement": {
+        "title": "Loan Settlement"
+      },
+      "customPayment": {
+        "title": "Custom Payment",
+        "placeholder": "Enter amount",
+        "enterAmount": "Enter amount"
+      },
+      "status": {
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "today": "Today",
+        "unpaid": "Unpaid"
+      },
+      "errors": {
+        "paymentError": "Error processing payment. Please try again.",
+        "settlementError": "Error processing settlement. Please try again.",
+        "invalidAmount": "Entered amount is not valid."
+      }
+    },
+    "home": {
+      "chart": {
+        "valueLabel": "Portfolio Value",
+        "portfolioPercent": "Portfolio Percentage",
+        "activePercent": "Active Percentage"
+      },
+      "loanBanner": {
+        "alt": "Loan up to 70% of your investment amount"
       }
     }
   }

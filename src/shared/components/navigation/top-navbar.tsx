@@ -9,11 +9,12 @@ import { cn } from "@/shared/lib/utils";
 
 export function TopNavbar() {
   const t = useTranslations("app");
+  const tNotifications = useTranslations("app.notifications");
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // Mock notification data - در آینده از API یا context دریافت می‌شود
+  // Mock notification data - will be fetched from API or context in the future
   const hasNotification = true;
-  const lastMessage = "سرمایه گذاری با وام";
+  const lastMessage = tNotifications("message");
   
   // Typewriter effect - repeats every 5 seconds
   const [displayedText, setDisplayedText] = useState("");
@@ -102,7 +103,7 @@ export function TopNavbar() {
               {hasNotification && (
                 <span className="absolute top-1 right-1 h-2 w-2 bg-primary rounded-full" />
               )}
-            <span className="sr-only">نوتیفیکیشن‌ها</span>
+            <span className="sr-only">{tNotifications("srOnly")}</span>
           </Button>
           </div>
       </div>
@@ -122,9 +123,9 @@ export function TopNavbar() {
                 </div>
               </div>
               <div className="flex-1 space-y-1">
-                <p className="font-semibold">سرمایه گذاری با وام</p>
+                <p className="font-semibold">{tNotifications("title")}</p>
                 <p className="text-sm text-muted-foreground">
-                  می‌توانید تا ۷۰٪ مبلغ سرمایه‌گذاری خود را از طریق وام دریافت کنید و در صندوق‌های پیشنهادی سرمایه‌گذاری کنید.
+                  {tNotifications("description")}
                 </p>
               </div>
             </div>

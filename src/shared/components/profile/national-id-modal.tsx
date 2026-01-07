@@ -27,6 +27,7 @@ export function NationalIdModal({
   onSubmit,
 }: NationalIdModalProps) {
   const t = useTranslations("app.profile.verification");
+  const tCommon = useTranslations("common");
   const [nationalId, setNationalId] = useState("");
   const [username, setUsername] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,25 +51,25 @@ export function NationalIdModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>احراز هویت پایه</DialogTitle>
+          <DialogTitle>{t("modal.title")}</DialogTitle>
           <DialogDescription>
-            لطفاً کد ملی خود را وارد کنید
+            {t("modal.description")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="username">نام حساب کاربری</Label>
+            <Label htmlFor="username">{t("modal.usernameLabel")}</Label>
             <Input
               id="username"
               type="text"
-              placeholder="نام حساب کاربری خود را وارد کنید"
+              placeholder={t("modal.usernamePlaceholder")}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               dir="rtl"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="nationalId">کد ملی</Label>
+            <Label htmlFor="nationalId">{t("modal.nationalIdLabel")}</Label>
             <Input
               id="nationalId"
               type="text"
@@ -85,10 +86,10 @@ export function NationalIdModal({
         </div>
         <DialogFooter>
           <Button onClick={handleSubmit} disabled={!nationalId.trim() || !username.trim() || isSubmitting}>
-            {isSubmitting ? "در حال ثبت..." : "ثبت"}
+            {isSubmitting ? t("modal.submittingButton") : t("modal.submitButton")}
           </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            لغو
+            {tCommon("cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>

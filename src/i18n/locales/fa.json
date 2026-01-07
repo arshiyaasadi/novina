@@ -68,7 +68,8 @@
         "title": "اطلاعات کاربر",
         "firstName": "نام",
         "lastName": "نام خانوادگی",
-        "email": "ایمیل"
+        "email": "ایمیل",
+        "verifyButton": "احراز هویت پایه رو انجام بده"
       },
       "verification": {
         "title": "احراز هویت",
@@ -81,7 +82,18 @@
           "title": "احراز هویت خود را کامل کنید",
           "message": "برای شروع سرمایه‌گذاری بدون محدودیت، لطفاً احراز هویت خود را تکمیل کنید.",
           "completeButton": "تکمیل احراز هویت"
-        }
+        },
+        "modal": {
+          "title": "احراز هویت پایه",
+          "description": "لطفاً کد ملی خود را وارد کنید",
+          "usernameLabel": "نام حساب کاربری",
+          "usernamePlaceholder": "نام حساب کاربری خود را وارد کنید",
+          "nationalIdLabel": "کد ملی",
+          "submitButton": "ثبت",
+          "submittingButton": "در حال ثبت...",
+          "cancelButton": "لغو"
+        },
+        "levelTitle": "سطح احراز هویت"
       },
       "settings": {
         "title": "تنظیمات برنامه",
@@ -105,6 +117,76 @@
         "title": "هنوز دارایی ثبت نشده",
         "description": "برای شروع سرمایه‌گذاری، روی دکمه زیر کلیک کن",
         "investButton": "سرمایه گذاری روی پورتفوی"
+      }
+    },
+    "notifications": {
+      "srOnly": "نوتیفیکیشن‌ها",
+      "message": "سرمایه گذاری با وام",
+      "title": "سرمایه گذاری با وام",
+      "description": "می‌توانید تا ۷۰٪ مبلغ سرمایه‌گذاری خود را از طریق وام دریافت کنید و در صندوق‌های پیشنهادی سرمایه‌گذاری کنید."
+    },
+    "investment": {
+      "title": "سرمایه‌گذاری",
+      "guideText": "مبلغ سرمایه گذاری رو وارد کن",
+      "portfolioTitle": "پورتفوی انتخابی:",
+      "amountLabel": "مبلغ سرمایه‌گذاری (تومان)",
+      "amountPlaceholder": "مثال: ۱۰,۰۰۰,۰۰۰",
+      "minAmount": "حداقل مبلغ: {amount} تومان",
+      "loanCheckbox": "۷۰ درصد مبلغ رو وام دریافت کن",
+      "loanAmount": "مبلغ وام:",
+      "loanPeriodTitle": "مدت زمان بازپرداخت:",
+      "interest": "{interest}% سود",
+      "continue": "ادامه",
+      "backToHome": "بازگشت به صفحه اصلی",
+      "noPortfolioMessage": "لطفاً ابتدا پورتفوی خود را در صفحه اصلی تنظیم کنید.",
+      "errors": {
+        "invalidNumber": "لطفاً فقط عدد وارد کنید",
+        "minAmount": "حداقل مبلغ سرمایه‌گذاری {amount} تومان است",
+        "required": "لطفاً مبلغ را وارد کنید",
+        "saveError": "خطا در ذخیره اطلاعات"
+      },
+      "loanOptions": {
+        "3months": "۳ ماه",
+        "6months": "۶ ماه",
+        "9months": "۹ ماه"
+      }
+    },
+    "activities": {
+      "types": {
+        "investment": "سرمایه گذاری",
+        "loan": "دریافت وام",
+        "installment": "پرداخت قسط"
+      }
+    },
+    "installments": {
+      "settlement": {
+        "title": "تسویه وام"
+      },
+      "customPayment": {
+        "title": "پرداخت مبلغ دلخواه",
+        "placeholder": "مبلغ را وارد کنید",
+        "enterAmount": "مبلغ را وارد کنید"
+      },
+      "status": {
+        "paid": "پرداخت شده",
+        "overdue": "سررسید گذشته",
+        "today": "امروز",
+        "unpaid": "پرداخت نشده"
+      },
+      "errors": {
+        "paymentError": "خطا در پردازش پرداخت. لطفاً دوباره تلاش کنید.",
+        "settlementError": "خطا در پردازش تسویه. لطفاً دوباره تلاش کنید.",
+        "invalidAmount": "مبلغ وارد شده معتبر نیست."
+      }
+    },
+    "home": {
+      "chart": {
+        "valueLabel": "ارزش سرمایه",
+        "portfolioPercent": "درصد پورتفوی",
+        "activePercent": "درصد فعالی"
+      },
+      "loanBanner": {
+        "alt": "وام تا ۷۰٪ مبلغ سرمایه‌گذاری شما"
       }
     }
   }

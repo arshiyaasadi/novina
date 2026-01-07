@@ -30,7 +30,7 @@ export function UserInfoSection({
             <User className="h-6 w-6 text-primary" />
           </div>
           <Button onClick={onVerifyClick} className="w-full">
-            احراز هویت پایه رو انجام بده
+            {t("userInfo.verifyButton")}
           </Button>
         </CardContent>
       </Card>

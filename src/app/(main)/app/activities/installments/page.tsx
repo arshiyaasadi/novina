@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { convertToEnglishDigits } from "@/shared/lib/number-utils";
+import { useTranslations } from "next-intl";
 
 type InvestmentData = {
   amount: number;
@@ -43,6 +44,8 @@ type Installment = {
 export default function InstallmentsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const t = useTranslations("app.installments");
+  const tStatus = useTranslations("app.installments.status");
   const [investment, setInvestment] = useState<InvestmentData | null>(null);
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -191,7 +194,7 @@ export default function InstallmentsPage() {
       router.push(receiptUrl);
     } catch (error) {
       console.error("Failed to process payment:", error);
-      alert("خطا در پردازش پرداخت. لطفاً دوباره تلاش کنید.");
+      alert(t("errors.paymentError"));
     }
   };
 
@@ -237,7 +240,7 @@ export default function InstallmentsPage() {
       const activity = {
         id: `activity-${Date.now()}-${Math.random()}`,
         type: "loan_settlement",
-        title: "تسویه وام",
+        title: t("settlement.title"),
         amount: totalForSettlement,
         investmentIndex: investmentIndex,
         createdAt: new Date().toISOString(),
@@ -254,7 +257,7 @@ export default function InstallmentsPage() {
       router.push(receiptUrl);
     } catch (error) {
       console.error("Failed to process settlement:", error);
-      alert("خطا در پردازش تسویه. لطفاً دوباره تلاش کنید.");
+      alert(t("errors.settlementError"));
     }
   };
 
@@ -263,7 +266,7 @@ export default function InstallmentsPage() {
     const unpaidInstallmentsForCustom = installments.filter((i) => !i.isPaid);
     const totalRemainingForCustom = unpaidInstallmentsForCustom.reduce((sum, i) => sum + i.amount, 0);
     if (customAmountNum <= 0 || customAmountNum > totalRemainingForCustom) {
-      alert("مبلغ وارد شده معتبر نیست.");
+      alert(t("errors.invalidAmount"));
       return;
     }
 
@@ -322,7 +325,7 @@ export default function InstallmentsPage() {
       const activity = {
         id: `activity-${Date.now()}-${Math.random()}`,
         type: "custom_payment",
-        title: "پرداخت مبلغ دلخواه",
+        title: t("customPayment.title"),
         amount: customAmountNum,
         investmentIndex: investmentIndex,
         createdAt: new Date().toISOString(),
@@ -440,19 +443,19 @@ export default function InstallmentsPage() {
           <Card>
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-green-600">{paidCount}</div>
-              <div className="text-xs text-muted-foreground mt-1">پرداخت شده</div>
+              <div className="text-xs text-muted-foreground mt-1">{tStatus("paid")}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-orange-600">{unpaidCount}</div>
-              <div className="text-xs text-muted-foreground mt-1">پرداخت نشده</div>
+              <div className="text-xs text-muted-foreground mt-1">{tStatus("unpaid")}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-red-600">{overdueCount}</div>
-              <div className="text-xs text-muted-foreground mt-1">سررسید گذشته</div>
+              <div className="text-xs text-muted-foreground mt-1">{tStatus("overdue")}</div>
             </CardContent>
           </Card>
         </div>
@@ -560,7 +563,7 @@ export default function InstallmentsPage() {
                         const value = converted.replace(/[^\d]/g, "");
                         setCustomAmount(value);
                       }}
-                      placeholder="مبلغ را وارد کنید"
+                      placeholder={t("customPayment.placeholder")}
                       className="text-center text-lg font-semibold"
                     />
                   </div>
@@ -662,12 +665,12 @@ export default function InstallmentsPage() {
                         }`}
                       >
                         {installment.isPaid
-                          ? "پرداخت شده"
+                          ? tStatus("paid")
                           : installment.isOverdue
-                          ? "سررسید گذشته"
+                          ? tStatus("overdue")
                           : isToday
-                          ? "امروز"
-                          : "پرداخت نشده"}
+                          ? tStatus("today")
+                          : tStatus("unpaid")}
                       </div>
                     </div>
                   </div>
@@ -702,7 +705,7 @@ export default function InstallmentsPage() {
             onClickHandler = handleCustomPayment;
             isDisabled = false;
           } else {
-            buttonText = "مبلغ را وارد کنید";
+            buttonText = t("customPayment.enterAmount");
             isDisabled = true;
           }
         }

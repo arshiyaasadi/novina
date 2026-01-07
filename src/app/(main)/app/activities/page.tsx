@@ -45,6 +45,7 @@ type ActivityRecord = {
 
 export default function ActivitiesPage() {
   const t = useTranslations("app.activities");
+  const tActivities = useTranslations("app.activities.types");
   const router = useRouter();
   const [investments, setInvestments] = useState<InvestmentData[]>([]);
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
@@ -120,7 +121,7 @@ export default function ActivitiesPage() {
     allActivities.push({
       id: `investment-${index}`,
       type: "investment",
-      title: "سرمایه گذاری",
+      title: tActivities("investment"),
       amount: investment.investmentAmount,
       createdAt: investment.createdAt,
       investment,
@@ -131,7 +132,7 @@ export default function ActivitiesPage() {
       allActivities.push({
         id: `loan-${index}`,
         type: "loan",
-        title: "دریافت وام",
+        title: tActivities("loan"),
         amount: investment.loanAmount || 0,
         createdAt: investment.createdAt,
         investment,

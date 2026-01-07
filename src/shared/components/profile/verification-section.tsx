@@ -14,7 +14,7 @@ interface VerificationSectionProps {
 export function VerificationSection({ level }: VerificationSectionProps) {
   const t = useTranslations("app.profile.verification");
 
-  // فقط اگر level basic یا advanced باشد نمایش داده شود
+  // Only display if level is basic or advanced
   if (level === "none") {
     return null;
   }
@@ -22,7 +22,7 @@ export function VerificationSection({ level }: VerificationSectionProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>سطح احراز هویت</CardTitle>
+        <CardTitle>{t("levelTitle")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-3">
