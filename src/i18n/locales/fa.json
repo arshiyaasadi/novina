@@ -154,6 +154,20 @@
         "3months": "۳ ماه",
         "6months": "۶ ماه",
         "9months": "۹ ماه"
+      },
+      "financingType": {
+        "noCollateral": "بدون پشتوانه",
+        "loan": "وام",
+        "collateral": "وثیقه"
+      },
+      "collateral": {
+        "selectAsset": "انتخاب دارایی برای وثیقه",
+        "walletEmpty": "برای وام با وثیقه کریپتو ابتدا ولت خود را پر کنید.",
+        "loanPercent": "درصد وام از ارزش دارایی (حداکثر ۸۰٪)",
+        "loanAmountFromCollateral": "مبلغ وام:",
+        "periodOneYear": "مدت بازپرداخت: ۱ سال",
+        "repaymentLumpSum": "بازپرداخت یک‌باره",
+        "freezeWarning": "مبلغی که به عنوان وثیقه قرار می‌دهید فریز می‌شود و تا پایان بازپرداخت قابل برداشت نیست."
       }
     },
     "installments": {
@@ -185,6 +199,61 @@
       },
       "loanBanner": {
         "alt": "وام تا ۷۰٪ مبلغ سرمایه‌گذاری شما"
+      }
+    },
+    "wallet": {
+      "createWallet": "ساخت ولت",
+      "createWalletDescription": "ولت ارز دیجیتال خود را بسازید؛ واریز و برداشت تتر و بیت‌کوین",
+      "myWallet": "ولت من",
+      "usdt": "تتر (USDT)",
+      "btc": "بیت‌کوین (BTC)",
+      "goToWallet": "برای واریز و برداشت وارد ولت شوید",
+      "register": {
+        "title": "ساخت ولت",
+        "welcomeTitle": "ولت ارز دیجیتال",
+        "welcomeDescription": "با ساخت ولت، یک عبارت بازیابی ۱۲ کلمه‌ای دریافت می‌کنید. این عبارت را در جای امن یادداشت کنید؛ تنها راه بازیابی دسترسی به ولت شماست.",
+        "welcomeDescription2": "پس از تأیید عبارت، امکان واریز و برداشت تتر و بیت‌کوین برای شما فعال می‌شود.",
+        "start": "شروع",
+        "recoveryPhrase": "عبارت بازیابی (۱۲ کلمه)",
+        "recoveryWarning": "عبارت را در جای امن یادداشت کنید. نمایش مجدد ممکن نیست.",
+        "continue": "ادامه",
+        "confirmPhrase": "تأیید عبارت",
+        "confirmDescription": "سه کلمه زیر را به ترتیب وارد کنید تا تأیید شود عبارت را ذخیره کرده‌اید.",
+        "wordNumber": "کلمه شماره {number}",
+        "confirmAndCreate": "تأیید و ساخت ولت"
+      },
+      "dashboard": {
+        "title": "ولت من",
+        "balance": "موجودی",
+        "deposit": "واریز",
+        "withdraw": "برداشت",
+        "backToApp": "بازگشت به اپ"
+      },
+      "deposit": {
+        "title": "واریز",
+        "addressTitle": "آدرس ولت برای واریز",
+        "usdtWarning": "فقط روی شبکه ERC-20 یا TRC-20 واریز کنید؛ واریز روی شبکه دیگر باعث از دست رفتن دارایی می‌شود.",
+        "btcWarning": "فقط بیت‌کوین واریز کنید؛ واریز هر شبکه یا دارایی دیگر باعث از دست رفتن دارایی می‌شود.",
+        "copyAddress": "کپی آدرس",
+        "copied": "آدرس کپی شد.",
+        "backToWallet": "بازگشت به ولت"
+      },
+      "withdraw": {
+        "title": "برداشت",
+        "amount": "مبلغ",
+        "destinationAddress": "آدرس مقصد",
+        "destinationPlaceholder": "آدرس ولت مقصد را وارد کنید",
+        "withdrawButton": "برداشت",
+        "availableBalance": "موجودی قابل برداشت",
+        "successTitle": "برداشت با موفقیت ثبت شد",
+        "successDescription": "درخواست برداشت شما ثبت شد. (این یک نمایش فرانت‌اند است؛ در محیط واقعی تراکنش روی شبکه انجام می‌شود.)",
+        "close": "بستن",
+        "backToWallet": "بازگشت به ولت",
+        "errors": {
+          "amountRequired": "مبلغ باید بزرگ‌تر از صفر باشد.",
+          "addressRequired": "آدرس مقصد را وارد کنید.",
+          "insufficientBalance": "موجودی کافی نیست."
+        }
       }
     }
   }

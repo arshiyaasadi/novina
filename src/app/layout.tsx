@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/shared/components/theme-provider";
-import { routing } from "@/i18n/routing";
+import getRequestConfig from "../../i18n/request";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,11 +14,13 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const messages = await getMessages();
-  const locale = routing.defaultLocale;
+  const { messages, locale } = await getRequestConfig();
 
   return (
     <html lang={locale} dir="rtl" suppressHydrationWarning className="h-full overflow-hidden">
+      <head>
+        <link rel="stylesheet" href="/fonts/IRANSans/Iransansx.css" />
+      </head>
       <body className="h-full overflow-hidden">
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider

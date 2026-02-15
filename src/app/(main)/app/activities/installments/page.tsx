@@ -7,7 +7,7 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { convertToEnglishDigits } from "@/shared/lib/number-utils";
+import { normalizeNumericInput } from "@/shared/lib/number-utils";
 import { useTranslations } from "next-intl";
 
 type InvestmentData = {
@@ -586,11 +586,7 @@ function InstallmentsPageContent() {
                       id="custom-amount"
                       type="text"
                       value={customAmount ? formatNumber(parseInt(customAmount) || 0) : ""}
-                      onChange={(e) => {
-                        const converted = convertToEnglishDigits(e.target.value);
-                        const value = converted.replace(/[^\d]/g, "");
-                        setCustomAmount(value);
-                      }}
+                      onChange={(e) => setCustomAmount(normalizeNumericInput(e.target.value))}
                       placeholder={t("customPayment.placeholder")}
                       className="text-center text-lg font-semibold"
                     />

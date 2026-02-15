@@ -6,7 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/shared/ui/dialog";
 import { useRouter } from "next/navigation";
-import { TrendingUp, Calendar, DollarSign, CreditCard, ChevronDown, ChevronUp, ArrowUp, ArrowDown, HelpCircle, ArrowLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { TrendingUp, Calendar, DollarSign, CreditCard, ChevronDown, ChevronUp, ArrowUp, ArrowDown, HelpCircle, ArrowLeft, Wallet } from "lucide-react";
+import { CoinIcon } from "@/shared/components/coin-icon";
+import { getWalletState, formatBtcDisplay, type WalletBalances } from "./wallet/lib/wallet-storage";
 import { getAllFunds } from "@/app/risk-assessment/data/funds";
 import {
   Chart as ChartJS,
@@ -83,6 +86,7 @@ const fundColors = [
 
 export default function AppPage() {
   const router = useRouter();
+  const tWallet = useTranslations("app.wallet");
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [latestInvestment, setLatestInvestment] = useState<InvestmentData | null>(null);
@@ -91,6 +95,8 @@ export default function AppPage() {
   const [isPortfolioComparisonModalOpen, setIsPortfolioComparisonModalOpen] = useState(false);
   const [priceChartPeriod, setPriceChartPeriod] = useState<"1d" | "1w" | "1m">("1d");
   const [primaryColor, setPrimaryColor] = useState<string>("hsl(225, 68%, 22%)");
+  const [walletRegistered, setWalletRegistered] = useState(false);
+  const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(null);
 
   useEffect(() => {
     // Load portfolio and latest investment from localStorage
@@ -106,6 +112,10 @@ export default function AppPage() {
         const parsed = JSON.parse(savedInvestment);
         setLatestInvestment(parsed);
       }
+
+      const walletState = getWalletState();
+      setWalletRegistered(walletState.walletRegistered);
+      setWalletBalances(walletState.walletBalances);
     } catch (error) {
       console.error("Failed to load data from localStorage:", error);
     } finally {
@@ -790,7 +800,64 @@ export default function AppPage() {
         {(!latestInvestment || latestInvestment.status !== "completed") && (
           <PortfolioPieChart items={portfolio} />
         )}
-        
+
+        {/* Wallet: ساخت ولت or ولت من - above banner */}
+        {!walletRegistered ? (
+          <Card
+            className="cursor-pointer transition-all hover:bg-muted/50 active:scale-[0.98] border-2 border-dashed border-primary/30"
+            onClick={() => router.push("/app/wallet/register")}
+          >
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="p-3 rounded-lg bg-primary/10">
+                <Wallet className="w-8 h-8 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">{tWallet("createWallet")}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {tWallet("createWalletDescription")}
+                </p>
+              </div>
+              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card
+            className="cursor-pointer transition-all hover:bg-muted/50 active:scale-[0.98]"
+            onClick={() => router.push("/app/wallet")}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5" />
+                  {tWallet("myWallet")}
+                </CardTitle>
+                <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <CoinIcon symbol="USDT" size={18} />
+                  {tWallet("usdt")}
+                </span>
+                <span className="font-bold tabular-nums">
+                  {walletBalances?.usdt != null ? formatNumber(Number(walletBalances.usdt)) : "۰"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <CoinIcon symbol="BTC" size={18} />
+                  {tWallet("btc")}
+                </span>
+                <span className="font-bold tabular-nums">
+                  {formatBtcDisplay(walletBalances?.btc)}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">{tWallet("goToWallet")}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Loan Banner - Only show before investment */}
         {(!latestInvestment || latestInvestment.status !== "completed") && (
           <Card>

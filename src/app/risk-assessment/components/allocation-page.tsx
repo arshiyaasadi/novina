@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { getAllFunds, Fund } from "../data/funds";
+import { getAllFunds } from "../data/funds";
 import { FundAllocationItem } from "./fund-allocation-item";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
@@ -39,14 +39,8 @@ function distributePercentage(
   const MIN_PERCENTAGE = 5;
   const MAX_PERCENTAGE = 95;
   
-  // Clamp the new percentage between 5% and 95%
+  // Clamp the new percentage between 5% and 95% (integer only)
   const clampedNewPercentage = Math.max(MIN_PERCENTAGE, Math.min(MAX_PERCENTAGE, newPercentage));
-  
-  // Set the changed fund's percentage
-  newAllocations.set(changedFundId, clampedNewPercentage);
-  
-  // Calculate remaining percentage to distribute
-  const remainingPercentage = 100 - clampedNewPercentage;
   
   // Get current percentages of other funds
   const otherFundsData = otherFundIds.map(id => ({
@@ -56,99 +50,51 @@ function distributePercentage(
   
   const otherFundsTotal = otherFundsData.reduce((sum, f) => sum + f.current, 0);
   
+  // Integer-only: clamp changed value to integer
+  const clampedNewInt = Math.round(clampedNewPercentage);
+  newAllocations.set(changedFundId, Math.max(MIN_PERCENTAGE, Math.min(MAX_PERCENTAGE, clampedNewInt)));
+  const remainingInt = 100 - (newAllocations.get(changedFundId) ?? 0);
+
   if (otherFundsTotal === 0 || Math.abs(otherFundsTotal) < 0.01) {
-    // If other funds are all 0, distribute remaining equally
-    const equalShare = remainingPercentage / otherFundIds.length;
+    const equalShare = remainingInt / otherFundIds.length;
     otherFundIds.forEach(id => {
-      const clamped = Math.max(MIN_PERCENTAGE, Math.min(MAX_PERCENTAGE, equalShare));
+      const clamped = Math.max(MIN_PERCENTAGE, Math.min(MAX_PERCENTAGE, Math.round(equalShare)));
       newAllocations.set(id, clamped);
     });
   } else {
-    // Distribute remaining percentage proportionally based on current ratios
     otherFundsData.forEach(({ id, current }) => {
       const proportion = current / otherFundsTotal;
-      const targetPercent = remainingPercentage * proportion;
-      const clamped = Math.max(MIN_PERCENTAGE, Math.min(MAX_PERCENTAGE, targetPercent));
+      const targetPercent = remainingInt * proportion;
+      const clamped = Math.max(MIN_PERCENTAGE, Math.min(MAX_PERCENTAGE, Math.round(targetPercent)));
       newAllocations.set(id, clamped);
     });
   }
-  
-  // Final normalization to ensure exactly 100%
-  let total = Array.from(newAllocations.values()).reduce((sum, val) => sum + val, 0);
-  let diff = 100 - total;
-  
-  // Round to 2 decimal places to avoid floating point issues
-  if (Math.abs(diff) > 0.001) {
-    // Find all funds that can be adjusted
-    const allFundsEntries = Array.from(newAllocations.entries());
-    
-    // Try to distribute the difference proportionally
-    const adjustableFunds = allFundsEntries.filter(([id, value]) => {
-      if (diff > 0) {
-        return value < MAX_PERCENTAGE;
-      } else {
-        return value > MIN_PERCENTAGE;
-      }
-    });
-    
-    if (adjustableFunds.length > 0) {
-      // Distribute the difference equally among adjustable funds
-        const adjustmentPerFund = diff / adjustableFunds.length;
-      adjustableFunds.forEach(([id, current]) => {
-          const newValue = current + adjustmentPerFund;
-          const clamped = Math.max(MIN_PERCENTAGE, Math.min(MAX_PERCENTAGE, newValue));
-        newAllocations.set(id, Math.round(clamped * 100) / 100); // Round to 2 decimals
-        });
-      
-      // Final check and fix any remaining difference
-      total = Array.from(newAllocations.values()).reduce((sum, val) => sum + val, 0);
-      diff = 100 - total;
-      
-      if (Math.abs(diff) > 0.001 && adjustableFunds.length > 0) {
-        // Apply final adjustment to first adjustable fund
-        const [firstId, firstValue] = adjustableFunds[0];
-        const finalValue = firstValue + diff;
-        const clamped = Math.max(MIN_PERCENTAGE, Math.min(MAX_PERCENTAGE, finalValue));
-        newAllocations.set(firstId, Math.round(clamped * 100) / 100);
-      }
-    }
-  }
-  
-  // Final pass: ensure all values are rounded and total is exactly 100
+
+  // Final pass: integers only, total exactly 100
   const roundedAllocations = new Map<number, number>();
   let roundedTotal = 0;
-  
+
   newAllocations.forEach((value, id) => {
-    const rounded = Math.round(value * 100) / 100;
+    const rounded = Math.round(value);
     roundedAllocations.set(id, rounded);
     roundedTotal += rounded;
   });
-  
-  // Fix any rounding differences
+
   const roundingDiff = 100 - roundedTotal;
-  if (Math.abs(roundingDiff) > 0.001) {
+  if (roundingDiff !== 0) {
     const firstEntry = Array.from(roundedAllocations.entries())[0];
     if (firstEntry) {
       const [firstId, firstValue] = firstEntry;
-      roundedAllocations.set(firstId, Math.round((firstValue + roundingDiff) * 100) / 100);
+      roundedAllocations.set(firstId, Math.max(MIN_PERCENTAGE, Math.min(MAX_PERCENTAGE, firstValue + roundingDiff)));
     }
   }
-  
+
   return roundedAllocations;
 }
 
-/**
- * Calculate slider step based on number of funds
- * Ensures percentages can always sum to exactly 100%
- */
-function calculateStep(fundCount: number): number {
-  if (fundCount <= 1) return 1;
-  // For 2-4 funds: use precise step (1 / fundCount)
-  if (fundCount <= 4) return 1 / fundCount;
-  // For 5-10 funds: use 0.2 step
-  if (fundCount <= 10) return 0.2;
-  // For 10+ funds: use 0.1 step (minimum)
-  return 0.1;
+/** Slider step: integer percentages only */
+function calculateStep(_fundCount: number): number {
+  return 1;
 }
 
 export function AllocationPage({
@@ -172,32 +118,33 @@ export function AllocationPage({
   
   const initialAllocations = useMemo(() => {
     const map = new Map<number, number>();
-    
-    // If only one fund, set to 100%
     if (selectedFunds.length === 1) {
       map.set(selectedFunds[0].id, 100);
       return map;
     }
-    
-    const clampedInitial = Math.max(5, Math.min(95, initialPercentage));
+    const clampedInitial = Math.max(5, Math.min(95, Math.round(initialPercentage)));
     selectedFunds.forEach((fund, index) => {
       if (index === selectedFunds.length - 1) {
-        // Last fund gets the remainder to ensure total is 100%
         const sum = Array.from(map.values()).reduce((s, v) => s + v, 0);
         const remainder = 100 - sum;
-        map.set(fund.id, Math.max(5, Math.min(95, remainder)));
+        map.set(fund.id, Math.max(5, Math.min(95, Math.round(remainder))));
       } else {
         map.set(fund.id, clampedInitial);
       }
     });
+    // Ensure total is exactly 100 (integer)
+    let total = Array.from(map.values()).reduce((s, v) => s + v, 0);
+    if (total !== 100 && selectedFunds.length > 0) {
+      const firstId = selectedFunds[0].id;
+      map.set(firstId, (map.get(firstId) ?? 0) + (100 - total));
+    }
     return map;
   }, [selectedFunds, initialPercentage]);
   
   const [allocations, setAllocations] = useState<Map<number, number>>(initialAllocations);
-  // Use a ref to track the latest allocations to avoid stale closures when React batches updates
   const allocationsRef = useRef<Map<number, number>>(initialAllocations);
   const previousFundIdsRef = useRef<string>("");
-  
+
   // Keep ref in sync with state
   useEffect(() => {
     allocationsRef.current = allocations;
@@ -224,24 +171,27 @@ export function AllocationPage({
       return;
     }
     
-    const clampedInitial = Math.max(5, Math.min(95, initialPercentage));
+    const clampedInitial = Math.max(5, Math.min(95, Math.round(initialPercentage)));
     selectedFunds.forEach((fund, index) => {
       if (index === selectedFunds.length - 1) {
         const sum = Array.from(newAllocations.values()).reduce((s, v) => s + v, 0);
         const remainder = 100 - sum;
-        newAllocations.set(fund.id, Math.max(5, Math.min(95, remainder)));
+        newAllocations.set(fund.id, Math.max(5, Math.min(95, Math.round(remainder))));
       } else {
         newAllocations.set(fund.id, clampedInitial);
       }
     });
+    let total = Array.from(newAllocations.values()).reduce((s, v) => s + v, 0);
+    if (total !== 100 && selectedFunds.length > 0) {
+      newAllocations.set(selectedFunds[0].id, (newAllocations.get(selectedFunds[0].id) ?? 0) + (100 - total));
+    }
     setAllocations(newAllocations);
     allocationsRef.current = newAllocations;
   }, [selectedFundIds, selectedFunds, initialPercentage]);
   
   const totalPercentage = useMemo(() => {
     const total = Array.from(allocations.values()).reduce((sum, val) => sum + val, 0);
-    // Round to 2 decimal places to avoid floating point issues
-    return Math.round(total * 100) / 100;
+    return Math.round(total);
   }, [allocations]);
 
   // Calculate step based on number of funds
@@ -265,9 +215,8 @@ export function AllocationPage({
   };
   
   const handleContinue = () => {
-    // Check if total is 100%
-    if (Math.abs(totalPercentage - 100) > 0.01) {
-      alert(`مجموع درصدها باید دقیقاً 100% باشد. مجموع فعلی: ${totalPercentage.toFixed(2)}%`);
+    if (totalPercentage !== 100) {
+      alert(`مجموع درصدها باید دقیقاً 100% باشد. مجموع فعلی: ${totalPercentage}%`);
       return;
     }
 
@@ -278,7 +227,7 @@ export function AllocationPage({
         return {
           fundId,
           fundName: fund?.name || "",
-          percentage: Math.round(percentage * 100) / 100, // Round to 2 decimals
+          percentage: Math.round(percentage),
           category: fund?.category || "conservative",
         };
       })
@@ -336,7 +285,6 @@ export function AllocationPage({
               </p>
             </CardHeader>
             <CardContent className="space-y-6 pb-8">
-              {/* Fund Allocation List */}
               <div className="space-y-4">
                 {selectedFunds.map((fund) => {
                   const fundPercentage = allocations.get(fund.id) || 0;
@@ -367,15 +315,15 @@ export function AllocationPage({
               console.log("Button clicked, totalPercentage:", totalPercentage);
               handleContinue();
             }}
-            disabled={Math.abs(totalPercentage - 100) > 0.01}
+            disabled={totalPercentage !== 100}
             className="flex-1"
             size="lg"
           >
             <Save className="w-4 h-4 ml-2" />
             ذخیره و سرمایه‌گذاری
-            {Math.abs(totalPercentage - 100) > 0.01 && (
+            {totalPercentage !== 100 && (
               <span className="mr-2 text-xs opacity-75">
-                ({totalPercentage.toFixed(1)}%)
+                ({totalPercentage}%)
               </span>
             )}
           </Button>

@@ -126,6 +126,20 @@
         "3months": "3 months",
         "6months": "6 months",
         "9months": "9 months"
+      },
+      "financingType": {
+        "noCollateral": "No collateral",
+        "loan": "Loan",
+        "collateral": "Collateral"
+      },
+      "collateral": {
+        "selectAsset": "Select asset for collateral",
+        "walletEmpty": "To get a loan with crypto collateral, please fund your wallet first.",
+        "loanPercent": "Loan percentage of asset value (up to 80%)",
+        "loanAmountFromCollateral": "Loan amount:",
+        "periodOneYear": "Repayment period: 1 year",
+        "repaymentLumpSum": "Lump sum repayment",
+        "freezeWarning": "The amount you put as collateral will be frozen and cannot be withdrawn until the loan is repaid."
       }
     },
     "installments": {

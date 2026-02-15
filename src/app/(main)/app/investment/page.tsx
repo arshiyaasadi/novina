@@ -8,13 +8,21 @@ import { Label } from "@/shared/ui/label";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { PortfolioItem } from "@/shared/components/portfolio/portfolio-pie-chart";
+import { CoinIcon } from "@/shared/components/coin-icon";
 import { cn } from "@/shared/lib/utils";
-import { convertToEnglishDigits } from "@/shared/lib/number-utils";
+import { normalizeNumericInput } from "@/shared/lib/number-utils";
 import { useTranslations } from "next-intl";
+import { getWalletState } from "../wallet/lib/wallet-storage";
 
 const MIN_AMOUNT = 500000; // 500,000 Toman
+const USDT_TO_TOMAN = 50_000;
+const BTC_PRICE_USD = 100_000;
+const USD_TO_TOMAN = 50_000;
+const COLLATERAL_MAX_PERCENT = 80;
 
 type LoanPeriod = 3 | 6 | 9 | null;
+type FinancingType = "none" | "loan" | "collateral";
+type CollateralAsset = "usdt" | "btc";
 
 function InvestmentPageContent() {
   const router = useRouter();
@@ -29,9 +37,11 @@ function InvestmentPageContent() {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [amount, setAmount] = useState<string>("");
   const [error, setError] = useState<string>("");
-  
-  const [useLoan, setUseLoan] = useState(false);
+  const [financingType, setFinancingType] = useState<FinancingType>("none");
   const [loanPeriod, setLoanPeriod] = useState<LoanPeriod>(null);
+  const [walletBalances, setWalletBalances] = useState<{ usdt: string; btc: string } | null>(null);
+  const [collateralAsset, setCollateralAsset] = useState<CollateralAsset | null>(null);
+  const [collateralPercent, setCollateralPercent] = useState(0);
 
   useEffect(() => {
     // Load portfolio from localStorage
@@ -46,21 +56,26 @@ function InvestmentPageContent() {
     }
   }, []);
 
+  useEffect(() => {
+    const state = getWalletState();
+    if (state.walletRegistered && state.walletBalances) {
+      setWalletBalances(state.walletBalances);
+    } else {
+      setWalletBalances(null);
+    }
+  }, []);
+
   // Check URL parameter for loan and update state
   useEffect(() => {
     const loanFromUrl = searchParams.get("loan") === "true";
-    setUseLoan(loanFromUrl);
-    if (!loanFromUrl) {
-      setLoanPeriod(null);
+    if (loanFromUrl) {
+      setFinancingType("loan");
     }
   }, [searchParams]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Convert Persian/Arabic digits to English
-    const converted = convertToEnglishDigits(e.target.value);
-    // Remove commas and non-numeric characters
-    const value = converted.replace(/[^\d]/g, "");
-    
+    const value = normalizeNumericInput(e.target.value);
     setAmount(value);
     
     // Validate
@@ -99,16 +114,29 @@ function InvestmentPageContent() {
     // Save investment data to localStorage
     try {
       localStorage.setItem("investmentAmount", numericAmount.toString());
-      if (useLoan && loanPeriod) {
+      if (financingType === "none") {
+        localStorage.setItem("loanType", "none");
+        localStorage.setItem("useLoan", "false");
+      } else if (financingType === "loan" && loanPeriod) {
+        localStorage.setItem("loanType", "cash");
         localStorage.setItem("useLoan", "true");
-        localStorage.setItem("loanAmount", loanAmount.toString());
+        localStorage.setItem("loanAmount", cashLoanAmount.toString());
         localStorage.setItem("loanPeriod", loanPeriod.toString());
         const selectedOption = LOAN_OPTIONS.find(opt => opt.months === loanPeriod);
         if (selectedOption) {
           localStorage.setItem("loanInterest", selectedOption.interest.toString());
         }
-      } else {
-        localStorage.setItem("useLoan", "false");
+      } else if (financingType === "collateral" && collateralAsset && collateralPercent > 0) {
+        const valueToman = collateralAssetValueToman(collateralAsset);
+        const loanAmt = Math.round((valueToman * collateralPercent) / 100);
+        localStorage.setItem("loanType", "collateral");
+        localStorage.setItem("useLoan", "true");
+        localStorage.setItem("collateralAsset", collateralAsset);
+        localStorage.setItem("collateralValueToman", valueToman.toString());
+        localStorage.setItem("collateralLoanPercent", collateralPercent.toString());
+        localStorage.setItem("loanAmount", loanAmt.toString());
+        localStorage.setItem("loanPeriod", "12");
+        localStorage.setItem("repaymentType", "lumpSum");
       }
       router.push("/app/investment/invoice");
     } catch (error) {
@@ -119,11 +147,30 @@ function InvestmentPageContent() {
 
   const numericAmount = parseInt(amount.replace(/,/g, ""), 10) || 0;
   const isValidAmount = numericAmount >= MIN_AMOUNT;
-  const loanAmount = useLoan ? Math.round((numericAmount * 70) / 100) : 0;
-  
-  // Validation: if useLoan is true, loanPeriod must be selected
-  const isLoanValid = !useLoan || (useLoan && loanPeriod !== null);
-  const canContinue = isValidAmount && isLoanValid;
+  const cashLoanAmount = financingType === "loan" ? Math.round((numericAmount * 70) / 100) : 0;
+
+  function collateralAssetValueToman(asset: CollateralAsset): number {
+    if (!walletBalances) return 0;
+    if (asset === "usdt") {
+      return (Number(walletBalances.usdt) || 0) * USDT_TO_TOMAN;
+    }
+    return (Number(walletBalances.btc) || 0) * BTC_PRICE_USD * USD_TO_TOMAN;
+  }
+
+  const collateralLoanAmount =
+    financingType === "collateral" && collateralAsset && collateralPercent > 0
+      ? Math.round((collateralAssetValueToman(collateralAsset) * collateralPercent) / 100)
+      : 0;
+
+  const hasWalletAssets =
+    walletBalances &&
+    ((Number(walletBalances.usdt) || 0) > 0 || (Number(walletBalances.btc) || 0) > 0);
+
+  const isFinancingValid =
+    financingType === "none" ||
+    (financingType === "loan" && loanPeriod !== null) ||
+    (financingType === "collateral" && collateralAsset !== null && collateralPercent > 0 && collateralPercent <= COLLATERAL_MAX_PERCENT);
+  const canContinue = isValidAmount && isFinancingValid;
 
   if (portfolio.length === 0) {
     return (
@@ -213,38 +260,70 @@ function InvestmentPageContent() {
               )}
             </div>
 
-            {/* Loan Checkbox */}
+            {/* Financing type tabs */}
             <div className="space-y-3 pt-2 border-t">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={useLoan}
-                  onChange={(e) => {
-                    setUseLoan(e.target.checked);
-                    if (!e.target.checked) {
-                      setLoanPeriod(null);
-                    }
+              <div className="flex rounded-lg border bg-muted/30 p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFinancingType("none");
+                    setLoanPeriod(null);
+                    setCollateralAsset(null);
+                    setCollateralPercent(0);
                   }}
-                  className="w-4 h-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                />
-                <span className="text-sm font-medium">
-                  {t("loanCheckbox")}
-                </span>
-              </label>
+                  className={cn(
+                    "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
+                    financingType === "none"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {t("financingType.noCollateral")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFinancingType("loan");
+                    setCollateralAsset(null);
+                    setCollateralPercent(0);
+                  }}
+                  className={cn(
+                    "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
+                    financingType === "loan"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {t("financingType.loan")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFinancingType("collateral");
+                    setLoanPeriod(null);
+                  }}
+                  className={cn(
+                    "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
+                    financingType === "collateral"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {t("financingType.collateral")}
+                </button>
+              </div>
 
-              {/* Loan Details */}
-              {useLoan && numericAmount > 0 && (
+              {/* Loan (cash) details */}
+              {financingType === "loan" && numericAmount > 0 && (
                 <div className="space-y-4 p-4 rounded-lg bg-muted/50 border">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{t("loanAmount")}</span>
                       <span className="text-lg font-bold tabular-nums font-mono">
-                        {formatNumber(loanAmount)} تومان
+                        {formatNumber(cashLoanAmount)} تومان
                       </span>
                     </div>
                   </div>
-
-                  {/* Loan Period Selection */}
                   <div className="space-y-2 pt-2 border-t">
                     <p className="text-sm font-medium">{t("loanPeriodTitle")}</p>
                     <div className="grid grid-cols-3 gap-2">
@@ -270,6 +349,92 @@ function InvestmentPageContent() {
                       ))}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Collateral (crypto) details */}
+              {financingType === "collateral" && (
+                <div className="space-y-4 p-4 rounded-lg bg-muted/50 border">
+                  {!walletBalances || !hasWalletAssets ? (
+                    <p className="text-sm text-muted-foreground">
+                      {t("collateral.walletEmpty")}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium">{t("collateral.selectAsset")}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(Number(walletBalances.usdt) || 0) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCollateralAsset("usdt");
+                              setCollateralPercent(0);
+                            }}
+                            className={cn(
+                              "flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors",
+                              collateralAsset === "usdt"
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background border-input hover:bg-muted"
+                            )}
+                          >
+                            <CoinIcon symbol="USDT" size={20} />
+                            تتر
+                          </button>
+                        )}
+                        {(Number(walletBalances.btc) || 0) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCollateralAsset("btc");
+                              setCollateralPercent(0);
+                            }}
+                            className={cn(
+                              "flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors",
+                              collateralAsset === "btc"
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background border-input hover:bg-muted"
+                            )}
+                          >
+                            <CoinIcon symbol="BTC" size={20} />
+                            بیت‌کوین
+                          </button>
+                        )}
+                      </div>
+                      {collateralAsset && (
+                        <>
+                          <div className="space-y-2 pt-2 border-t">
+                            <Label className="text-sm">
+                              {t("collateral.loanPercent")} — {collateralPercent}%
+                            </Label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={COLLATERAL_MAX_PERCENT}
+                              step={5}
+                              value={collateralPercent}
+                              onChange={(e) =>
+                                setCollateralPercent(parseInt(e.target.value, 10))
+                              }
+                              className="w-full h-2 rounded-full appearance-none bg-muted accent-primary"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{t("collateral.loanAmountFromCollateral")}</span>
+                            <span className="font-bold tabular-nums">
+                              {formatNumber(collateralLoanAmount)} تومان
+                            </span>
+                          </div>
+                          <p className="text-xs font-medium">{t("collateral.periodOneYear")}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {t("collateral.repaymentLumpSum")}
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-amber-500">
+                            {t("collateral.freezeWarning")}
+                          </p>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </div>

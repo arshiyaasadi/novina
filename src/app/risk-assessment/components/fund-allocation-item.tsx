@@ -2,7 +2,9 @@
 
 import { Fund } from "../data/funds";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
 import { cn } from "@/shared/lib/utils";
+import { normalizeNumericInput } from "@/shared/lib/number-utils";
 import { useRef, useEffect, useState } from "react";
 
 interface FundAllocationItemProps {
@@ -14,13 +16,13 @@ interface FundAllocationItemProps {
   className?: string;
 }
 
-const categoryLabels: Record<string, string> = {
+export const categoryLabels: Record<string, string> = {
   conservative: "محافظه‌کار",
   balanced: "متعادل",
   aggressive: "جسور",
 };
 
-const categoryColors: Record<string, string> = {
+export const categoryColors: Record<string, string> = {
   conservative: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   balanced: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   aggressive: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
@@ -38,6 +40,8 @@ export function FundAllocationItem({
   const sliderRef = useRef<HTMLInputElement>(null);
   const [localValue, setLocalValue] = useState(percentage);
   const isDraggingRef = useRef(false);
+  const [inputValue, setInputValue] = useState(String(Math.round(percentage)));
+  const [inputFocused, setInputFocused] = useState(false);
 
   // Sync local value when percentage prop changes (from parent)
   useEffect(() => {
@@ -45,6 +49,13 @@ export function FundAllocationItem({
       setLocalValue(percentage);
     }
   }, [percentage]);
+
+  // Sync input text when percentage changes and input not focused
+  useEffect(() => {
+    if (!inputFocused) {
+      setInputValue(String(Math.round(percentage)));
+    }
+  }, [percentage, inputFocused]);
 
   // Haptic feedback every 10 units
   useEffect(() => {
@@ -59,12 +70,11 @@ export function FundAllocationItem({
   }, [localValue]);
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseFloat(e.target.value);
+    const newValue = Math.round(parseFloat(e.target.value));
     setLocalValue(newValue);
     // #region agent log
     fetch('http://127.0.0.1:7243/ingest/67f948b8-794c-4178-a942-4c9f88678cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'fund-allocation-item.tsx:57',message:'handleSliderChange',data:{fundId:fund.id,newValue,currentPercentage:percentage,localValue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H5'})}).catch(()=>{});
     // #endregion
-    // Call onPercentageChange immediately to update other funds in real-time
     onPercentageChange(newValue);
   };
 
@@ -87,8 +97,8 @@ export function FundAllocationItem({
   return (
     <Card className={cn("border", className)}>
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg font-semibold leading-tight flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <CardTitle className="text-lg font-semibold leading-tight">
             {fund.name}
           </CardTitle>
           <span
@@ -120,9 +130,29 @@ export function FundAllocationItem({
             style={{ transform: "scaleX(-1)" }}
           />
           <div className="flex items-center gap-1 min-w-[60px] justify-end">
-            <span className="text-2xl font-bold tabular-nums">
-              {step < 1 ? localValue.toFixed(step < 0.1 ? 2 : 1) : Math.round(localValue)}
-            </span>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={inputFocused ? inputValue : String(Math.round(percentage))}
+              onChange={(e) => setInputValue(normalizeNumericInput(e.target.value))}
+              onFocus={() => {
+                setInputFocused(true);
+                setInputValue(String(Math.round(percentage)));
+              }}
+              onBlur={() => {
+                setInputFocused(false);
+                const num = parseInt(normalizeNumericInput(inputValue), 10);
+                const clamped = Number.isNaN(num)
+                  ? (isSingleFund ? 100 : Math.round(percentage))
+                  : isSingleFund
+                    ? Math.max(0, Math.min(100, num))
+                    : Math.max(5, Math.min(95, num));
+                setInputValue(String(clamped));
+                onPercentageChange(clamped);
+              }}
+              className="h-9 w-14 text-center text-lg font-bold tabular-nums px-1"
+              aria-label={`درصد ${fund.name}`}
+            />
             <span className="text-sm text-muted-foreground">%</span>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { Input } from "@/shared/ui/input";
-import { convertToEnglishDigits } from "@/shared/lib/number-utils";
+import { normalizeNumericInput } from "@/shared/lib/number-utils";
 import { cn } from "@/shared/lib/utils";
 
 interface OtpInputProps {
@@ -28,11 +28,7 @@ export function OtpInput({
   }, []);
 
   const handleChange = (index: number, newValue: string) => {
-    // Convert Persian/Arabic digits to English
-    const converted = convertToEnglishDigits(newValue);
-    
-    // Only allow single digit
-    const digit = converted.replace(/\D/g, "").slice(0, 1);
+    const digit = normalizeNumericInput(newValue).slice(0, 1);
     
     const newOtp = [...value];
     newOtp[index] = digit;
@@ -76,8 +72,7 @@ export function OtpInput({
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text");
-    const converted = convertToEnglishDigits(pastedData);
-    const digits = converted.replace(/\D/g, "").slice(0, 4).split("");
+    const digits = normalizeNumericInput(pastedData).slice(0, 4).split("");
 
     if (digits.length > 0) {
       const newOtp = [...value];
@@ -106,8 +101,7 @@ export function OtpInput({
   const handleInputPaste = (index: number) => (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text");
-    const converted = convertToEnglishDigits(pastedData);
-    const digits = converted.replace(/\D/g, "").slice(0, 4).split("");
+    const digits = normalizeNumericInput(pastedData).slice(0, 4).split("");
 
     if (digits.length > 0) {
       const newOtp = [...value];

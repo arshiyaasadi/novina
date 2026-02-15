@@ -7,9 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Edit, ChevronDown, ChevronUp, Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { PortfolioItem } from "@/shared/components/portfolio/portfolio-pie-chart";
+import { CoinIcon } from "@/shared/components/coin-icon";
 import { cn } from "@/shared/lib/utils";
 
 type LoanPeriod = 3 | 6 | 9;
+type LoanType = "none" | "cash" | "collateral";
 
 const LOAN_OPTIONS = [
   { months: 3 as const, interest: 3.5, label: "۳ ماه" },
@@ -21,44 +23,51 @@ export default function InvoicePage() {
   const router = useRouter();
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [amount, setAmount] = useState<number>(0);
+  const [loanType, setLoanType] = useState<LoanType>("none");
   const [useLoan, setUseLoan] = useState(false);
   const [loanAmount, setLoanAmount] = useState<number>(0);
   const [loanPeriod, setLoanPeriod] = useState<LoanPeriod | null>(null);
   const [loanInterest, setLoanInterest] = useState<number>(0);
+  const [collateralAsset, setCollateralAsset] = useState<"usdt" | "btc" | null>(null);
+  const [collateralValueToman, setCollateralValueToman] = useState<number>(0);
   const [isDistributionOpen, setIsDistributionOpen] = useState(false);
   const [isInstallmentsOpen, setIsInstallmentsOpen] = useState(false);
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
   const [isAgreementAccepted, setIsAgreementAccepted] = useState(false);
 
   useEffect(() => {
-    // Load portfolio and amount from localStorage
     try {
       const savedPortfolio = localStorage.getItem("portfolio");
       const savedAmount = localStorage.getItem("investmentAmount");
+      const savedLoanType = (localStorage.getItem("loanType") || "none") as LoanType;
       const savedUseLoan = localStorage.getItem("useLoan");
       const savedLoanAmount = localStorage.getItem("loanAmount");
       const savedLoanPeriod = localStorage.getItem("loanPeriod");
       const savedLoanInterest = localStorage.getItem("loanInterest");
-      
+      const savedCollateralAsset = localStorage.getItem("collateralAsset");
+      const savedCollateralValueToman = localStorage.getItem("collateralValueToman");
+
       if (savedPortfolio) {
         const parsed = JSON.parse(savedPortfolio);
         setPortfolio(parsed);
       }
-      
       if (savedAmount) {
         setAmount(parseInt(savedAmount, 10));
       }
 
+      setLoanType(savedLoanType);
       if (savedUseLoan === "true") {
         setUseLoan(true);
-        if (savedLoanAmount) {
-          setLoanAmount(parseInt(savedLoanAmount, 10));
+        if (savedLoanAmount) setLoanAmount(parseInt(savedLoanAmount, 10));
+        if (savedLoanPeriod) setLoanPeriod(parseInt(savedLoanPeriod, 10) as LoanPeriod);
+        if (savedLoanInterest) setLoanInterest(parseFloat(savedLoanInterest));
+      }
+      if (savedLoanType === "collateral") {
+        if (savedCollateralAsset === "usdt" || savedCollateralAsset === "btc") {
+          setCollateralAsset(savedCollateralAsset);
         }
-        if (savedLoanPeriod) {
-          setLoanPeriod(parseInt(savedLoanPeriod, 10) as LoanPeriod);
-        }
-        if (savedLoanInterest) {
-          setLoanInterest(parseFloat(savedLoanInterest));
+        if (savedCollateralValueToman) {
+          setCollateralValueToman(parseInt(savedCollateralValueToman, 10));
         }
       }
     } catch (error) {
@@ -78,15 +87,26 @@ export default function InvoicePage() {
     return sum + calculateFundAmount(item.percentage);
   }, 0);
 
-  // Calculate loan details
+  // Calculate loan details (cash: installments; collateral: lump sum 1 year)
   const calculateLoanDetails = () => {
-    if (!useLoan || !loanPeriod || loanAmount === 0) return null;
+    if (!useLoan || loanAmount === 0) return null;
 
+    if (loanType === "collateral") {
+      const dueDate = new Date();
+      dueDate.setFullYear(dueDate.getFullYear() + 1);
+      return {
+        interestAmount: 0,
+        totalPayable: loanAmount,
+        monthlyInstallment: 0,
+        dueDate,
+        isLumpSum: true,
+      };
+    }
+
+    if (!loanPeriod) return null;
     const interestAmount = Math.round((loanAmount * loanInterest) / 100);
     const totalPayable = loanAmount + interestAmount;
     const monthlyInstallment = Math.round(totalPayable / loanPeriod);
-
-    // Calculate due date (loanPeriod months from now)
     const dueDate = new Date();
     dueDate.setMonth(dueDate.getMonth() + loanPeriod);
 
@@ -95,14 +115,15 @@ export default function InvoicePage() {
       totalPayable,
       monthlyInstallment,
       dueDate,
+      isLumpSum: false as const,
     };
   };
 
   const loanDetails = calculateLoanDetails();
 
-  // Calculate installments list
+  // Calculate installments list (only for cash loan)
   const calculateInstallments = () => {
-    if (!useLoan || !loanDetails || !loanPeriod) return [];
+    if (!useLoan || !loanDetails || !loanPeriod || loanType === "collateral" || loanDetails.isLumpSum) return [];
 
     const installments = [];
     const firstDueDate = new Date(loanDetails.dueDate);
@@ -126,20 +147,23 @@ export default function InvoicePage() {
   const installments = calculateInstallments();
 
   const handlePayment = () => {
-    // Save investment data to localStorage
     try {
       const investmentData = {
         amount: amount,
         portfolio: portfolio,
         useLoan: useLoan,
+        loanType: loanType,
         loanAmount: useLoan ? loanAmount : null,
         loanPeriod: useLoan ? loanPeriod : null,
         loanInterest: useLoan ? loanInterest : null,
+        collateralAsset: loanType === "collateral" ? collateralAsset : null,
+        collateralValueToman: loanType === "collateral" ? collateralValueToman : null,
         loanDetails: useLoan && loanDetails ? {
           interestAmount: loanDetails.interestAmount,
           totalPayable: loanDetails.totalPayable,
           monthlyInstallment: loanDetails.monthlyInstallment,
           dueDate: loanDetails.dueDate.toISOString(),
+          isLumpSum: loanDetails.isLumpSum ?? false,
         } : null,
         investmentAmount: useLoan ? amount - loanAmount : amount,
         createdAt: new Date().toISOString(),
@@ -185,8 +209,8 @@ export default function InvoicePage() {
                   </span>
                 </div>
                 
-                {/* Loan Information */}
-                {useLoan && loanDetails && loanPeriod && (
+                {/* Loan Information - Cash */}
+                {useLoan && loanDetails && loanType === "cash" && loanPeriod && (
                   <div className="pt-3 border-t border-primary/20 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">مبلغ وام (۷۰٪):</span>
@@ -222,6 +246,46 @@ export default function InvoicePage() {
                         })}
                       </span>
                     </div>
+                  </div>
+                )}
+
+                {/* Loan Information - Collateral (crypto) */}
+                {useLoan && loanDetails && loanType === "collateral" && collateralAsset && (
+                  <div className="pt-3 border-t border-primary/20 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">نوع وثیقه:</span>
+                      <span className="text-sm font-semibold flex items-center gap-1">
+                        <CoinIcon symbol={collateralAsset === "usdt" ? "USDT" : "BTC"} size={14} />
+                        {collateralAsset === "usdt" ? "تتر" : "بیت‌کوین"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">مبلغ وام از وثیقه:</span>
+                      <span className="text-sm font-semibold tabular-nums">
+                        {formatNumber(loanAmount)} تومان
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">مدت بازپرداخت:</span>
+                      <span className="text-sm font-semibold">۱ سال</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">نوع بازپرداخت:</span>
+                      <span className="text-sm font-semibold">یک‌باره</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">سررسید:</span>
+                      <span className="text-sm font-semibold tabular-nums">
+                        {loanDetails.dueDate.toLocaleDateString("fa-IR", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-600 dark:text-amber-500 pt-1">
+                      مبلغ وثیقه فریز می‌شود و تا پایان بازپرداخت قابل برداشت نیست.
+                    </p>
                   </div>
                 )}
 
@@ -415,7 +479,7 @@ export default function InvoicePage() {
       </div>
 
       {/* Loan Agreement Modal */}
-      {useLoan && loanDetails && loanPeriod && (
+      {useLoan && loanDetails && (loanPeriod || loanType === "collateral") && (
         <Dialog open={isLoanModalOpen} onOpenChange={setIsLoanModalOpen}>
           <DialogContent 
             className="max-w-md max-h-[90vh] overflow-y-auto"
@@ -429,70 +493,100 @@ export default function InvoicePage() {
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              {/* Loan Information */}
-              <div className="space-y-3 p-4 rounded-lg bg-muted/50">
-                <h3 className="font-semibold text-sm">اطلاعات وام:</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">مبلغ وام:</span>
-                    <span className="font-semibold tabular-nums">
-                      {formatNumber(loanAmount)} تومان
-                    </span>
+              {loanType === "collateral" ? (
+                <>
+                  <div className="space-y-3 p-4 rounded-lg bg-muted/50">
+                    <h3 className="font-semibold text-sm">اطلاعات وام با وثیقه کریپتو:</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">مبلغ وام:</span>
+                        <span className="font-semibold tabular-nums">
+                          {formatNumber(loanAmount)} تومان
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">مدت بازپرداخت:</span>
+                        <span className="font-semibold">۱ سال</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">بازپرداخت:</span>
+                        <span className="font-semibold">یک‌باره</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">سررسید:</span>
+                        <span className="font-semibold tabular-nums">
+                          {loanDetails.dueDate.toLocaleDateString("fa-IR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">نرخ سود:</span>
-                    <span className="font-semibold tabular-nums">
-                      {loanInterest}%
-                    </span>
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm">شرایط و قوانین:</h3>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <p>• مبلغی که به عنوان وثیقه قرار داده‌اید فریز می‌شود و تا پایان بازپرداخت قابل برداشت نیست.</p>
+                      <p>• بازپرداخت وام به صورت یک‌باره در پایان مدت یک سال انجام می‌شود.</p>
+                      <p>• در صورت عدم بازپرداخت به موقع، وثیقه شما به عنوان تسویه در نظر گرفته می‌شود.</p>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">مدت بازپرداخت:</span>
-                    <span className="font-semibold">
-                      {LOAN_OPTIONS.find(opt => opt.months === loanPeriod)?.label}
-                    </span>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-3 p-4 rounded-lg bg-muted/50">
+                    <h3 className="font-semibold text-sm">اطلاعات وام:</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">مبلغ وام:</span>
+                        <span className="font-semibold tabular-nums">
+                          {formatNumber(loanAmount)} تومان
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">نرخ سود:</span>
+                        <span className="font-semibold tabular-nums">
+                          {loanInterest}%
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">مدت بازپرداخت:</span>
+                        <span className="font-semibold">
+                          {loanPeriod != null && LOAN_OPTIONS.find(opt => opt.months === loanPeriod)?.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">مبلغ هر قسط:</span>
+                        <span className="font-bold tabular-nums text-primary">
+                          {formatNumber(loanDetails.monthlyInstallment)} تومان
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">سررسید اول وام:</span>
+                        <span className="font-semibold tabular-nums">
+                          {loanDetails.dueDate.toLocaleDateString("fa-IR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">مبلغ هر قسط:</span>
-                    <span className="font-bold tabular-nums text-primary">
-                      {formatNumber(loanDetails.monthlyInstallment)} تومان
-                    </span>
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-sm">شرایط و قوانین:</h3>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <p>• مبلغ وام معادل ۷۰ درصد از مبلغ سرمایه‌گذاری شما است.</p>
+                      <p>• بازپرداخت وام به صورت اقساط ماهانه انجام می‌شود.</p>
+                      <p>• در صورت تأخیر در پرداخت اقساط، جریمه دیرکرد اعمال می‌شود.</p>
+                      <p>• امکان تسویه زودهنگام وام با پرداخت تمام مبلغ باقیمانده وجود دارد.</p>
+                      <p>• در صورت عدم پرداخت اقساط، حساب شما مسدود خواهد شد.</p>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">سررسید اول وام:</span>
-                    <span className="font-semibold tabular-nums">
-                      {loanDetails.dueDate.toLocaleDateString("fa-IR", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
 
-              {/* Loan Terms */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-sm">شرایط و قوانین:</h3>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>
-                    • مبلغ وام معادل ۷۰ درصد از مبلغ سرمایه‌گذاری شما است.
-                  </p>
-                  <p>
-                    • بازپرداخت وام به صورت اقساط ماهانه انجام می‌شود.
-                  </p>
-                  <p>
-                    • در صورت تأخیر در پرداخت اقساط، جریمه دیرکرد اعمال می‌شود.
-                  </p>
-                  <p>
-                    • امکان تسویه زودهنگام وام با پرداخت تمام مبلغ باقیمانده وجود دارد.
-                  </p>
-                  <p>
-                    • در صورت عدم پرداخت اقساط، حساب شما مسدود خواهد شد.
-                  </p>
-                </div>
-              </div>
-
-              {/* Agreement Checkbox */}
               <div className="flex items-start gap-3 pt-2">
                 <input
                   type="checkbox"

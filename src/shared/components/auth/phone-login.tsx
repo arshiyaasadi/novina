@@ -12,7 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/shared/ui/dialog";
-import { convertToEnglishDigits } from "@/shared/lib/number-utils";
+import { normalizeNumericInput } from "@/shared/lib/number-utils";
 import { OtpInput } from "./otp-input";
 import { cn } from "@/shared/lib/utils";
 
@@ -212,11 +212,7 @@ export function PhoneLogin({ onContinue, onVerify }: PhoneLoginProps) {
                   inputMode="numeric"
                   placeholder={t("phonePlaceholder")}
                   value={phoneNumber}
-                  onChange={(e) => {
-                    // Convert Persian/Arabic digits to English
-                    const converted = convertToEnglishDigits(e.target.value);
-                    setPhoneNumber(converted);
-                  }}
+                  onChange={(e) => setPhoneNumber(normalizeNumericInput(e.target.value))}
                   className="text-lg"
                   dir="ltr"
                   autoFocus
