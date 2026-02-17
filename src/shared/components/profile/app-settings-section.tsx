@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Info, Clock, LogOut } from "lucide-react";
+import { Info, Clock, LogOut, SunMedium, Moon, Monitor } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useTheme } from "next-themes";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 
@@ -13,6 +14,7 @@ interface AppSettingsSectionProps {
 export function AppSettingsSection({ lastActivity }: AppSettingsSectionProps) {
   const t = useTranslations("app.profile.settings");
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   const handleLogout = () => {
     try {
@@ -40,6 +42,42 @@ export function AppSettingsSection({ lastActivity }: AppSettingsSectionProps) {
   return (
     <Card>
       <CardContent className="space-y-2 p-6">
+        {/* Theme toggle */}
+        <div className="mb-2 space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t("theme.title")}
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              type="button"
+              variant={theme === "light" ? "default" : "outline"}
+              className="flex items-center justify-center gap-1 text-xs"
+              onClick={() => setTheme("light")}
+            >
+              <SunMedium className="w-3 h-3" />
+              <span>{t("theme.light")}</span>
+            </Button>
+            <Button
+              type="button"
+              variant={theme === "dark" ? "default" : "outline"}
+              className="flex items-center justify-center gap-1 text-xs"
+              onClick={() => setTheme("dark")}
+            >
+              <Moon className="w-3 h-3" />
+              <span>{t("theme.dark")}</span>
+            </Button>
+            <Button
+              type="button"
+              variant={theme === "system" || !theme ? "default" : "outline"}
+              className="flex items-center justify-center gap-1 text-xs"
+              onClick={() => setTheme("system")}
+            >
+              <Monitor className="w-3 h-3" />
+              <span>{t("theme.system")}</span>
+            </Button>
+          </div>
+        </div>
+
         {menuItems.map((item) => {
           const Icon = item.icon;
           return (

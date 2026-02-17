@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, TrendingUp, Activity, User } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Activity, User, CreditCard } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/shared/lib/utils";
 
@@ -16,6 +16,11 @@ const navItems = [
     href: "/app/assets",
     icon: TrendingUp,
     translationKey: "assets",
+  },
+  {
+    href: "/app/credit",
+    icon: CreditCard,
+    translationKey: "credit",
   },
   {
     href: "/app/activities",

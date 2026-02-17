@@ -344,18 +344,10 @@ export function PortfolioPieChart({ items, className }: PortfolioPieChartProps) 
             })}
           </div>
 
-          {/* Action Buttons */}
-          <div className="w-full flex gap-3 pt-4">
-            <Button
-              onClick={() => router.push("/app/investment?loan=true")}
-              className="flex-1"
-              size="lg"
-            >
-              سرمایه‌گذاری با وام
-            </Button>
+          {/* Action Button: فقط شروع سرمایه‌گذاری */}
+          <div className="w-full flex pt-4">
             <Button
               onClick={() => router.push("/app/investment")}
-              variant="outline"
               className="flex-1"
               size="lg"
             >
@@ -365,7 +357,8 @@ export function PortfolioPieChart({ items, className }: PortfolioPieChartProps) 
         </div>
 
         {/* Distribution Section with Installments */}
-        <div className="space-y-3 pt-4 border-t">
+        {/* حذف نمایش توزیع سرمایه طبق درخواست */}
+        {/* <div className="space-y-3 pt-4 border-t">
           <button
             onClick={() => setIsDistributionOpen(!isDistributionOpen)}
             className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
@@ -463,7 +456,7 @@ export function PortfolioPieChart({ items, className }: PortfolioPieChartProps) 
               )}
             </div>
           )}
-        </div>
+        </div> */}
       </CardContent>
     </Card>
   );

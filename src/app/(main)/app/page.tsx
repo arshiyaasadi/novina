@@ -7,10 +7,34 @@ import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/shared/ui/dialog";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { TrendingUp, Calendar, DollarSign, CreditCard, ChevronDown, ChevronUp, ArrowUp, ArrowDown, HelpCircle, ArrowLeft, Wallet } from "lucide-react";
+import {
+  TrendingUp,
+  Calendar,
+  DollarSign,
+  CreditCard,
+  ChevronDown,
+  ChevronUp,
+  ArrowUp,
+  ArrowDown,
+  HelpCircle,
+  ArrowLeft,
+  Wallet,
+  Eye,
+  EyeOff,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Info,
+  Banknote,
+  Landmark,
+  Coins,
+  Sparkles,
+} from "lucide-react";
+import Image from "next/image";
 import { CoinIcon } from "@/shared/components/coin-icon";
 import { getWalletState, formatBtcDisplay, type WalletBalances } from "./wallet/lib/wallet-storage";
 import { getAllFunds } from "@/app/risk-assessment/data/funds";
+import LogoLoop from "@/shared/components/logo-loop";
+import { handlerBank, maskPanHandler } from "@/shared/lib/bank-card";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -84,6 +108,37 @@ const fundColors = [
   "#a855f7", // violet
 ];
 
+const creditSliderItems = [
+  {
+    id: "loan",
+    title: "وام",
+    description: "اعتبار نقدی فوری برای شروع.",
+    icon: Banknote,
+    href: "/app/credit/loan",
+  },
+  {
+    id: "funds",
+    title: "اوراق صندوق‌ها",
+    description: "استفاده از اوراق صندوق‌های نوین.",
+    icon: Landmark,
+    href: "/app/credit/funds",
+  },
+  {
+    id: "crypto",
+    title: "دارایی کریپتو",
+    description: "وثیقه‌گذاری کریپتو برای اعتبار.",
+    icon: Coins,
+    href: "/app/credit/crypto",
+  },
+  {
+    id: "twin",
+    title: "توکن تیوین TWIN",
+    description: "اعتبار بر اساس ارزش TWIN.",
+    icon: Sparkles,
+    href: "/app/credit/twin",
+  },
+] as const;
+
 export default function AppPage() {
   const router = useRouter();
   const tWallet = useTranslations("app.wallet");
@@ -96,7 +151,33 @@ export default function AppPage() {
   const [priceChartPeriod, setPriceChartPeriod] = useState<"1d" | "1w" | "1m">("1d");
   const [primaryColor, setPrimaryColor] = useState<string>("hsl(225, 68%, 22%)");
   const [walletRegistered, setWalletRegistered] = useState(false);
-  const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(null);
+  const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(null); // فقط برای کیف پول کریپتو
+  const [isWalletBalanceVisible, setIsWalletBalanceVisible] = useState(true);
+  const [isWalletMoreInfoOpen, setIsWalletMoreInfoOpen] = useState(false);
+  const [isCardsModalOpen, setIsCardsModalOpen] = useState(false);
+  const [mainWalletCards, setMainWalletCards] = useState<string[]>([]);
+  const [newCardNumber, setNewCardNumber] = useState("");
+  const [mainWalletBalance, setMainWalletBalance] = useState<number>(0); // موجودی کیف پول اصلی (تومان)
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [selectedCardForDeposit, setSelectedCardForDeposit] = useState<string | null>(null);
+  const [selectedCardForWithdraw, setSelectedCardForWithdraw] = useState<string | null>(null);
+  const [deleteConfirmCard, setDeleteConfirmCard] = useState<string | null>(null);
+  const [depositAmountInput, setDepositAmountInput] = useState("");
+  const [depositAmountRial, setDepositAmountRial] = useState(0);
+  const [withdrawAmountInput, setWithdrawAmountInput] = useState("");
+  const [withdrawAmountToman, setWithdrawAmountToman] = useState(0);
+  const [isProcessingDeposit, setIsProcessingDeposit] = useState(false);
+  const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
+  const [walletInlineMessage, setWalletInlineMessage] = useState<string | null>(null);
+  const [isWalletDetailsOpen, setIsWalletDetailsOpen] = useState(false);
+  const [walletCredits, setWalletCredits] = useState({
+    loan: 0,
+    funds: 0,
+    crypto: 0,
+    twin: 0,
+  });
+  const [activeCreditSlide, setActiveCreditSlide] = useState(0);
 
   useEffect(() => {
     // Load portfolio and latest investment from localStorage
@@ -116,6 +197,51 @@ export default function AppPage() {
       const walletState = getWalletState();
       setWalletRegistered(walletState.walletRegistered);
       setWalletBalances(walletState.walletBalances);
+
+      if (typeof window !== "undefined") {
+        // Load main wallet bank cards (کیف پول اصلی غیرکریپتو)
+        const storedCards = localStorage.getItem("mainWalletCards");
+        if (storedCards) {
+          try {
+            const parsedCards = JSON.parse(storedCards);
+            if (Array.isArray(parsedCards)) {
+              setMainWalletCards(parsedCards);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
+
+        // Load main wallet balance (تومان)
+        const storedBalance = localStorage.getItem("mainWalletBalanceToman");
+        if (storedBalance != null) {
+          const parsedBalance = Number(storedBalance);
+          if (!Number.isNaN(parsedBalance) && parsedBalance >= 0) {
+            setMainWalletBalance(Math.floor(parsedBalance));
+          }
+        }
+
+        const storedCredits = localStorage.getItem("walletCredits");
+        if (storedCredits) {
+          try {
+            const parsedCredits = JSON.parse(storedCredits);
+            if (
+              parsedCredits &&
+              typeof parsedCredits === "object" &&
+              ["loan", "funds", "crypto", "twin"].every((k) => typeof parsedCredits[k] === "number")
+            ) {
+              setWalletCredits({
+                loan: parsedCredits.loan,
+                funds: parsedCredits.funds,
+                crypto: parsedCredits.crypto,
+                twin: parsedCredits.twin,
+              });
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
     } catch (error) {
       console.error("Failed to load data from localStorage:", error);
     } finally {
@@ -132,6 +258,14 @@ export default function AppPage() {
         setPrimaryColor(`hsl(${hslValues[0]}, ${hslValues[1]}, ${hslValues[2]})`);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    if (creditSliderItems.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveCreditSlide((prev) => (prev + 1) % creditSliderItems.length);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const formatNumber = (num: number): string => {
@@ -157,6 +291,190 @@ export default function AppPage() {
   const calculateProfitLoss = (investmentAmount: number, currentValue: number): number => {
     if (investmentAmount === 0) return 0;
     return ((currentValue - investmentAmount) / investmentAmount) * 100;
+  };
+
+  const toPersianDigits = (value: string): string => {
+    const persianDigits = ["۰","۱","۲","۳","۴","۵","۶","۷","۸","۹"];
+    return value.replace(/\d/g, (d) => persianDigits[Number(d)]);
+  };
+
+  // تبدیل عدد به حروف فارسی (مبنای ریال/تومان)
+  const wordifyfa = (num: string | number, level = 0): string => {
+    const toEnglishDigits = (val: string | number): number => {
+      if (typeof val !== "string") {
+        return val;
+      }
+      const faDigits = "۰۱۲۳۴۵۶۷۸۹";
+      const arDigits = "٠١٢٣٤٥٦٧٨٩";
+      let output = "";
+      for (const n of val) {
+        const faIndex = faDigits.indexOf(n);
+        if (faIndex >= 0) {
+          output += faIndex.toString();
+          continue;
+        }
+        const arIndex = arDigits.indexOf(n);
+        if (arIndex >= 0) {
+          output += arIndex.toString();
+          continue;
+        }
+        output += n;
+      }
+      return parseInt(output.replace(/,/g, ""));
+    };
+
+    if (num === null) {
+      return "";
+    }
+
+    num = toEnglishDigits(num);
+
+    if (num < 0) {
+      num = num * -1;
+      return "منفی " + wordifyfa(num, level);
+    }
+    if (num === 0) {
+      if (level === 0) {
+        return "صفر";
+      }
+      return "";
+    }
+
+    let result = "";
+    const yekan = [" یک ", " دو ", " سه ", " چهار ", " پنج ", " شش ", " هفت ", " هشت ", " نه "];
+    const dahgan = [" بیست ", " سی ", " چهل ", " پنجاه ", " شصت ", " هفتاد ", " هشتاد ", " نود "];
+    const sadgan = [" یکصد ", " دویست ", " سیصد ", " چهارصد ", " پانصد ", " ششصد ", " هفتصد ", " هشتصد ", " نهصد "];
+    const dah = [
+      " ده ",
+      " یازده ",
+      " دوازده ",
+      " سیزده ",
+      " چهارده ",
+      " پانزده ",
+      " شانزده ",
+      " هفده ",
+      " هیجده ",
+      " نوزده ",
+    ];
+
+    if (level > 0) {
+      result += " و ";
+      level -= 1;
+    }
+
+    if (num < 10) {
+      result += yekan[num - 1];
+    } else if (num < 20) {
+      result += dah[num - 10];
+    } else if (num < 100) {
+      result += dahgan[Math.floor(num / 10) - 2] + wordifyfa(num % 10, level + 1);
+    } else if (num < 1000) {
+      result += sadgan[Math.floor(num / 100) - 1] + wordifyfa(num % 100, level + 1);
+    } else if (num < 1_000_000) {
+      result += wordifyfa(Math.floor(num / 1000), level) + " هزار " + wordifyfa(num % 1000, level + 1);
+    } else if (num < 1_000_000_000) {
+      result += wordifyfa(Math.floor(num / 1_000_000), level) + " میلیون " + wordifyfa(num % 1_000_000, level + 1);
+    } else if (num < 1_000_000_000_000) {
+      result += wordifyfa(Math.floor(num / 1_000_000_000), level) + " میلیارد " + wordifyfa(num % 1_000_000_000, level + 1);
+    } else if (num < 1_000_000_000_000_000) {
+      result +=
+        wordifyfa(Math.floor(num / 1_000_000_000_000), level) +
+        " تریلیارد " +
+        wordifyfa(num % 1_000_000_000_000, level + 1);
+    }
+
+    return result;
+  };
+
+  const formatTomanInWords = (amount: number): string => {
+    if (!amount || amount <= 0) return "";
+    return `${wordifyfa(amount, 0)} تومان`;
+  };
+
+  const normalizeCardInput = (value: string): { digits: string; formatted: string } => {
+    // تبدیل ارقام فارسی/عربی به انگلیسی و حذف کاراکترهای غیرعددی
+    const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+    const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+    let digits = "";
+    for (const ch of value) {
+      if (ch >= "0" && ch <= "9") {
+        digits += ch;
+      } else {
+        const pIndex = persianDigits.indexOf(ch);
+        const aIndex = arabicDigits.indexOf(ch);
+        if (pIndex !== -1) {
+          digits += String(pIndex);
+        } else if (aIndex !== -1) {
+          digits += String(aIndex);
+        }
+      }
+    }
+
+    // محدود کردن به حداکثر ۱۶ رقم (ماسک 9999 9999 9999 9999)
+    digits = digits.slice(0, 16);
+
+    // فرمت کردن برای نمایش به صورت 4-4-4-4
+    let formatted = digits;
+    if (digits.length > 0) {
+      const part1 = digits.slice(0, 4);
+      const part2 = digits.slice(4, 8);
+      const part3 = digits.slice(8, 12);
+      const part4 = digits.slice(12, 16);
+      formatted = part1;
+      if (part2) formatted += " " + part2;
+      if (part3) formatted += " " + part3;
+      if (part4) formatted += " " + part4;
+    }
+
+    return { digits, formatted };
+  };
+
+  const handleAddMainWalletCard = () => {
+    const digitsOnly = newCardNumber.replace(/\D/g, "");
+    // فرمت کارت: 9999 9999 9999 9999 → ۱۶ رقم (۴+۴+۴+۴)
+    if (digitsOnly.length !== 16) {
+      return;
+    }
+    // اعتبارسنجی BIN از روی لیست بانک‌ها
+    const bank = handlerBank(digitsOnly);
+    const isValidBin = !!bank.bankName && bank.id !== "pasinno";
+    if (!isValidBin) {
+      return;
+    }
+    const updated = Array.from(new Set([...mainWalletCards, digitsOnly]));
+    setMainWalletCards(updated);
+    setNewCardNumber("");
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("mainWalletCards", JSON.stringify(updated));
+      }
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const formatCardNumberForDisplay = (card: string): string => {
+    const digits = card.replace(/\D/g, "");
+    // نمایش به صورت 9999 9999 9999 9999 (۴-۴-۴-۴)
+    if (digits.length !== 16) return card;
+    return `${digits.slice(0, 4)} ${digits.slice(4, 8)} ${digits.slice(8, 12)} ${digits.slice(12, 16)}`;
+  };
+
+  const removeMainWalletCard = (cardToRemove: string) => {
+    setMainWalletCards((prev) => {
+      const updated = prev.filter((c) => c !== cardToRemove);
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("mainWalletCards", JSON.stringify(updated));
+        }
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+    setSelectedCardForDeposit((prev) => (prev === cardToRemove ? null : prev));
+    setSelectedCardForWithdraw((prev) => (prev === cardToRemove ? null : prev));
+    setDeleteConfirmCard((prev) => (prev === cardToRemove ? null : prev));
   };
 
   const toggleFund = (fundId: number) => {
@@ -262,6 +580,63 @@ export default function AppPage() {
 
   const nextInstallment = getNextInstallment();
 
+  // Funds ticker data for home screen (duplicated for longer loop)
+  const allFunds = getAllFunds();
+  const tickerItems =
+    allFunds.length > 0
+      ? allFunds
+          .map((fund) => {
+            const price = getFundPrice(fund.id);
+            if (!price) return null;
+            const isPositive = price.change24h >= 0;
+            return {
+              node: (
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="font-medium whitespace-nowrap">
+                    {fund.name}
+                  </span>
+                  <span className="tabular-nums text-[11px] text-muted-foreground whitespace-nowrap">
+                    {formatNumber(price.currentPrice)} تومان
+                  </span>
+                  <span
+                    className={`flex items-center gap-1 text-[11px] font-semibold tabular-nums whitespace-nowrap ${
+                      isPositive ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {isPositive ? (
+                      <ArrowUp className="w-3 h-3" />
+                    ) : (
+                      <ArrowDown className="w-3 h-3" />
+                    )}
+                    <span>
+                      {isPositive ? "+" : ""}
+                      {price.change24h.toFixed(2)}%
+                    </span>
+                  </span>
+                </div>
+              ),
+              title: fund.name,
+            };
+          })
+          .filter(Boolean) as { node: React.ReactNode; title: string }[]
+      : [];
+
+  const tickerLogos =
+    tickerItems.length > 0
+      ? Array.from({ length: 6 }, () => tickerItems).flat()
+      : [];
+
+  const getCardBankMeta = (card: string) => {
+    const pan = card.replace(/\D/g, "");
+    const bank = handlerBank(pan);
+    const masked = maskPanHandler(pan);
+    return {
+      bank,
+      pan,
+      masked,
+    };
+  };
+
   // Prepare Chart.js data
   const chartLabels = chartData.map((_, index) => {
     if (priceChartPeriod === "1d") return `${index}:00`;
@@ -359,8 +734,640 @@ export default function AppPage() {
 
   if (portfolio.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-4 min-h-full">
-        <div className="w-full max-w-md space-y-6">
+      <>
+        <div className="flex flex-col items-center justify-center p-4 min-h-full">
+          <div className="w-full max-w-md space-y-6">
+          {/* Main Wallet Card – بالای صفحه اصلی */}
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  ارزش کل دارایی کیف پول
+                </CardTitle>
+                <button
+                  type="button"
+                  className="text-[11px] font-medium text-primary hover:underline"
+                  onClick={() => setIsWalletDetailsOpen((prev) => !prev)}
+                >
+                  {isWalletDetailsOpen ? "بستن جزئیات" : "نمایش جزئیات"}
+                </button>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <p className="text-2xl font-bold tabular-nums">
+                  {isWalletBalanceVisible ? (
+                    <>
+                      {formatNumber(mainWalletBalance)}{" "}
+                      <span className="text-base font-normal">تومان</span>
+                    </>
+                  ) : (
+                    "•••••••"
+                  )}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsWalletBalanceVisible((v) => !v)}
+                  className="p-1 rounded-full hover:bg-muted transition-colors"
+                  aria-label={isWalletBalanceVisible ? "مخفی کردن موجودی" : "نمایش موجودی"}
+                >
+                  {isWalletBalanceVisible ? (
+                    <Eye className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <EyeOff className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </button>
+              </div>
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  isWalletDetailsOpen ? "max-h-[500px] opacity-100 mt-3" : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="space-y-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">موجودی کیف پول</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatNumber(mainWalletBalance)} تومان
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">اعتبار وام</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatNumber(walletCredits.loan)} تومان
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">اعتبار اوراق صندوق</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatNumber(walletCredits.funds)} تومان
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">اعتبار کریپتو</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatNumber(walletCredits.crypto)} تومان
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">اعتبار TWIN</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatNumber(walletCredits.twin)} تومان
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-0">
+              <div className="flex items-stretch justify-between gap-2">
+                <button
+                  type="button"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-muted bg-background hover:bg-muted/40 transition-colors py-2.5 text-xs"
+                  onClick={() => {
+                    if (mainWalletCards.length === 0) {
+                      setWalletInlineMessage("برای واریز ابتدا باید کارت بانکی اضافه کنید.");
+                      return;
+                    }
+                    setWalletInlineMessage(null);
+                    setSelectedCardForDeposit(null);
+                    setDepositAmountInput("");
+                    setDepositAmountRial(0);
+                    setIsDepositModalOpen(true);
+                  }}
+                >
+                  <ArrowDownToLine className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">واریز</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-muted bg-background hover:bg-muted/40 transition-colors py-2.5 text-xs"
+                  onClick={() => {
+                    if (mainWalletCards.length === 0) {
+                      setWalletInlineMessage("برای برداشت ابتدا باید کارت بانکی اضافه کنید.");
+                      return;
+                    }
+                    setWalletInlineMessage(null);
+                    setSelectedCardForWithdraw(null);
+                    setWithdrawAmountInput("");
+                    setWithdrawAmountToman(0);
+                    setIsWithdrawModalOpen(true);
+                  }}
+                >
+                  <ArrowUpFromLine className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">برداشت</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWalletInlineMessage(null);
+                    setIsCardsModalOpen(true);
+                  }}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-muted bg-background hover:bg-muted/40 transition-colors py-2.5 text-xs"
+                >
+                  <CreditCard className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">کارت‌ها</span>
+                </button>
+              </div>
+
+              {walletInlineMessage && (
+                <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  {walletInlineMessage}
+                </div>
+              )}
+
+              {isWalletMoreInfoOpen && (
+                <div className="border-t pt-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">موجودی قابل برداشت</span>
+                    <span className="text-sm font-semibold tabular-nums">
+                      {isWalletBalanceVisible ? (
+                        <>
+                          {formatNumber(mainWalletBalance)}{" "}
+                          <span className="text-xs font-normal">تومان</span>
+                        </>
+                      ) : (
+                        "•••••••"
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Main Wallet Cards Modal – فقط برای حالت پورتفوی خالی نیز رندر شود */}
+          <Dialog open={isCardsModalOpen} onOpenChange={setIsCardsModalOpen}>
+            <DialogContent onClose={() => setIsCardsModalOpen(false)}>
+              <DialogHeader>
+                <DialogTitle>افزودن کارت بانکی</DialogTitle>
+                <DialogDescription>لیست کارت‌های بانکی متصل به کیف پول اصلی شما.</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="main-wallet-card-number-empty">
+                    شماره کارت
+                  </label>
+                  <input
+                    id="main-wallet-card-number-empty"
+                    type="tel"
+                    inputMode="numeric"
+                    dir="ltr"
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    placeholder="0000 0000 0000 0000"
+                    value={newCardNumber}
+                    onChange={(e) => {
+                      const { formatted } = normalizeCardInput(e.target.value);
+                      setNewCardNumber(formatted);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    کارت بانکی باید به نام دارنده حساب اصلی باشد.
+                  </p>
+                  {(() => {
+                    const digitsLen = newCardNumber.replace(/\D/g, "").length;
+                    if (digitsLen < 6) return null;
+                    const { bank } = getCardBankMeta(newCardNumber);
+                    const isValidBin = !!bank.bankName && bank.id !== "pasinno";
+                    if (!isValidBin) {
+                      return (
+                        <p className="text-xs text-destructive mt-1">
+                          شماره کارت اشتباه است.
+                        </p>
+                      );
+                    }
+                    const logoSrc = `/images/bankLogos/${bank.logo}`;
+                    return (
+                      <div className="flex items-center gap-2 text-xs mt-1">
+                        <div className="relative h-5 w-5 overflow-hidden rounded-full bg-muted">
+                          <Image
+                            src={logoSrc}
+                            alt={bank.bankName || "لوگوی بانک"}
+                            fill
+                            sizes="20px"
+                            className="object-contain"
+                          />
+                        </div>
+                        <span className="font-medium">
+                          {bank.bankName || "کارت بانکی"}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={handleAddMainWalletCard}
+                  disabled={(() => {
+                    const digitsLen = newCardNumber.replace(/\D/g, "").length;
+                    if (digitsLen !== 16) return true;
+                    const { bank } = getCardBankMeta(newCardNumber);
+                    const isValidBin = !!bank.bankName && bank.id !== "pasinno";
+                    return !isValidBin;
+                  })()}
+                >
+                  ثبت شماره کارت
+                </Button>
+
+                {mainWalletCards.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-sm font-medium">لیست کارت‌های بانکی</p>
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {mainWalletCards.map((card) => {
+                        const { bank, masked } = getCardBankMeta(card);
+                        const logoSrc = `/images/bankLogos/${bank.logo}`;
+                        const isConfirming = deleteConfirmCard === card;
+                        return (
+                          <div
+                            key={card}
+                            className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-sm"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="relative h-6 w-6 overflow-hidden rounded-full bg-muted">
+                                <Image
+                                  src={logoSrc}
+                                  alt={bank.bankName || "لوگوی بانک"}
+                                  fill
+                                  sizes="24px"
+                                  className="object-contain"
+                                />
+                              </div>
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-[11px] font-medium">
+                                  {bank.bankName || "کارت بانکی"}
+                                </span>
+                                <span dir="ltr" className="tabular-nums text-[11px] text-muted-foreground">
+                                  {formatCardNumberForDisplay(masked)}
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isConfirming) {
+                                  removeMainWalletCard(card);
+                                } else {
+                                  setDeleteConfirmCard(card);
+                                }
+                              }}
+                              className="ml-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <span
+                                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[11px] leading-none"
+                              >
+                                ×
+                              </span>
+                              <span
+                                className={`overflow-hidden text-[11px] transition-all duration-200 ${
+                                  isConfirming
+                                    ? "max-w-[200px] opacity-100 ml-1"
+                                    : "max-w-0 opacity-0"
+                                }`}
+                              >
+                                برای حذف مجددا کلیک کنید
+                              </span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Deposit Modal */}
+          <Dialog open={isDepositModalOpen} onOpenChange={setIsDepositModalOpen}>
+            <DialogContent onClose={() => setIsDepositModalOpen(false)}>
+              <DialogHeader>
+                <DialogTitle>واریز به کیف پول</DialogTitle>
+                <DialogDescription>از بین کارت‌های بانکی خود یک کارت را انتخاب کنید و مبلغ را وارد کنید.</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                {/* Card selection */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">انتخاب کارت بانکی</p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {mainWalletCards.map((card) => {
+                      const selected = selectedCardForDeposit === card;
+                      const { bank, masked } = getCardBankMeta(card);
+                      const logoSrc = `/images/bankLogos/${bank.logo}`;
+                      return (
+                        <button
+                          key={card}
+                          type="button"
+                          onClick={() => setSelectedCardForDeposit(card)}
+                          className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-sm transition-colors ${
+                            selected
+                              ? "border-primary bg-primary/10"
+                              : "border-muted bg-muted/40 hover:bg-muted/70"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="relative h-6 w-6 overflow-hidden rounded-full bg-muted">
+                              <Image
+                                src={logoSrc}
+                                alt={bank.bankName || "لوگوی بانک"}
+                                fill
+                                sizes="24px"
+                                className="object-contain"
+                              />
+                            </div>
+                            <div className="flex flex-col items-start gap-0.5">
+                              <span className="text-[11px] font-medium">
+                                {bank.bankName || "کارت بانکی"}
+                              </span>
+                              <span dir="ltr" className="tabular-nums text-[11px] text-muted-foreground">
+                                {formatCardNumberForDisplay(masked)}
+                              </span>
+                            </div>
+                          </div>
+                          {selected && (
+                            <span className="text-xs text-primary font-medium">انتخاب شده</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    {mainWalletCards.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        هیچ کارتی ثبت نشده است. ابتدا کارت بانکی اضافه کنید.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Amount input (rial) */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="deposit-amount-input">
+                    مبلغ واریز (ریال)
+                  </label>
+                  <input
+                    id="deposit-amount-input"
+                    type="tel"
+                    inputMode="numeric"
+                    dir="ltr"
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    placeholder="مثلاً ۱,۰۰۰,۰۰۰"
+                    value={depositAmountInput}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+                      const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+                      let digits = "";
+                      for (const ch of raw) {
+                        if (ch >= "0" && ch <= "9") {
+                          digits += ch;
+                        } else {
+                          const pIndex = persianDigits.indexOf(ch);
+                          const aIndex = arabicDigits.indexOf(ch);
+                          if (pIndex !== -1) {
+                            digits += String(pIndex);
+                          } else if (aIndex !== -1) {
+                            digits += String(aIndex);
+                          }
+                        }
+                      }
+                      digits = digits.slice(0, 15);
+                      const amountRial = digits ? Number(digits) : 0;
+                      setDepositAmountRial(amountRial);
+                      setDepositAmountInput(digits ? formatNumber(amountRial) : "");
+                    }}
+                  />
+                  {Math.floor(depositAmountRial / 10) > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      معادل:{" "}
+                      <span className="font-medium">
+                        {formatTomanInWords(Math.floor(depositAmountRial / 10))}
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="button"
+                  className="w-full"
+                  disabled={
+                    isProcessingDeposit ||
+                    !selectedCardForDeposit ||
+                    Math.floor(depositAmountRial / 10) <= 0
+                  }
+                  onClick={() => {
+                    const depositToman = Math.floor(depositAmountRial / 10);
+                    if (!selectedCardForDeposit || depositToman <= 0) return;
+                    setIsProcessingDeposit(true);
+                    setTimeout(() => {
+                      setMainWalletBalance((prev) => {
+                        const next = Math.max(0, prev + depositToman);
+                        try {
+                          if (typeof window !== "undefined") {
+                            localStorage.setItem(
+                              "mainWalletBalanceToman",
+                              String(next)
+                            );
+                          }
+                        } catch {
+                          // ignore
+                        }
+                        return next;
+                      });
+                      setIsProcessingDeposit(false);
+                      setIsDepositModalOpen(false);
+                      setDepositAmountInput("");
+                      setDepositAmountRial(0);
+                      setSelectedCardForDeposit(null);
+                    }, 2000);
+                  }}
+                >
+                  {isProcessingDeposit ? "در حال پردازش..." : "پرداخت"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Withdraw Modal */}
+          <Dialog open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen}>
+            <DialogContent onClose={() => setIsWithdrawModalOpen(false)}>
+              <DialogHeader>
+                <DialogTitle>برداشت به کارت بانکی</DialogTitle>
+                <DialogDescription>کارت مقصد را انتخاب کرده و مبلغ برداشت را وارد کنید.</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                <div className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-primary">
+                  <span>فقط موجودی کیف پول اصلی قابل برداشت است.</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(mainWalletBalance)} تومان
+                  </span>
+                </div>
+
+                {/* Card selection */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">انتخاب کارت بانکی</p>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {mainWalletCards.map((card) => {
+                      const selected = selectedCardForWithdraw === card;
+                      const { bank, masked } = getCardBankMeta(card);
+                      const logoSrc = `/images/bankLogos/${bank.logo}`;
+                      return (
+                        <button
+                          key={card}
+                          type="button"
+                          onClick={() => setSelectedCardForWithdraw(card)}
+                          className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-sm transition-colors ${
+                            selected
+                              ? "border-primary bg-primary/10"
+                              : "border-muted bg-muted/40 hover:bg-muted/70"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="relative h-6 w-6 overflow-hidden rounded-full bg-muted">
+                              <Image
+                                src={logoSrc}
+                                alt={bank.bankName || "لوگوی بانک"}
+                                fill
+                                sizes="24px"
+                                className="object-contain"
+                              />
+                            </div>
+                            <div className="flex flex-col items-start gap-0.5">
+                              <span className="text-[11px] font-medium">
+                                {bank.bankName || "کارت بانکی"}
+                              </span>
+                              <span dir="ltr" className="tabular-nums text-[11px] text-muted-foreground">
+                                {formatCardNumberForDisplay(masked)}
+                              </span>
+                            </div>
+                          </div>
+                          {selected && (
+                            <span className="text-xs text-primary font-medium">انتخاب شده</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    {mainWalletCards.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        هیچ کارتی ثبت نشده است. ابتدا کارت بانکی اضافه کنید.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Amount input (toman) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium" htmlFor="withdraw-amount-input">
+                      مبلغ برداشت (تومان)
+                    </label>
+                    <button
+                      type="button"
+                      disabled={mainWalletBalance <= 0}
+                      onClick={() => {
+                        const maxAmount = mainWalletBalance;
+                        setWithdrawAmountToman(maxAmount);
+                        setWithdrawAmountInput(
+                          maxAmount > 0 ? formatNumber(maxAmount) : ""
+                        );
+                      }}
+                      className="text-[11px] font-medium text-primary disabled:text-muted-foreground hover:underline"
+                    >
+                      حداکثر قابل برداشت
+                    </button>
+                  </div>
+                  <input
+                    id="withdraw-amount-input"
+                    type="tel"
+                    inputMode="numeric"
+                    dir="ltr"
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    placeholder="مثلاً ۱۰۰,۰۰۰"
+                    value={withdrawAmountInput}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+                      const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+                      let digits = "";
+                      for (const ch of raw) {
+                        if (ch >= "0" && ch <= "9") {
+                          digits += ch;
+                        } else {
+                          const pIndex = persianDigits.indexOf(ch);
+                          const aIndex = arabicDigits.indexOf(ch);
+                          if (pIndex !== -1) {
+                            digits += String(pIndex);
+                          } else if (aIndex !== -1) {
+                            digits += String(aIndex);
+                          }
+                        }
+                      }
+                      digits = digits.slice(0, 15);
+                      const amountToman = digits ? Number(digits) : 0;
+                      setWithdrawAmountToman(amountToman);
+                      setWithdrawAmountInput(digits ? formatNumber(amountToman) : "");
+                    }}
+                  />
+                  {withdrawAmountToman > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      مبلغ انتخابی:{" "}
+                      <span className="font-medium">
+                        {formatTomanInWords(withdrawAmountToman)}
+                      </span>
+                    </p>
+                  )}
+                  {withdrawAmountToman > mainWalletBalance && (
+                    <p className="text-xs text-red-600">
+                      مبلغ بیشتر از موجودی کیف پول است.
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="button"
+                  className="w-full"
+                  disabled={
+                    isProcessingWithdraw ||
+                    !selectedCardForWithdraw ||
+                    withdrawAmountToman <= 0 ||
+                    withdrawAmountToman > mainWalletBalance
+                  }
+                  onClick={() => {
+                    if (
+                      !selectedCardForWithdraw ||
+                      withdrawAmountToman <= 0 ||
+                      withdrawAmountToman > mainWalletBalance
+                    ) {
+                      return;
+                    }
+                    setIsProcessingWithdraw(true);
+                    setTimeout(() => {
+                      setMainWalletBalance((prev) => {
+                        const next = Math.max(0, prev - withdrawAmountToman);
+                        try {
+                          if (typeof window !== "undefined") {
+                            localStorage.setItem(
+                              "mainWalletBalanceToman",
+                              String(next)
+                            );
+                          }
+                        } catch {
+                          // ignore
+                        }
+                        return next;
+                      });
+                      setIsProcessingWithdraw(false);
+                      setIsWithdrawModalOpen(false);
+                      setWithdrawAmountInput("");
+                      setWithdrawAmountToman(0);
+                      setSelectedCardForWithdraw(null);
+                    }, 2000);
+                  }}
+                >
+                  {isProcessingWithdraw ? "در حال پردازش..." : "درخواست برداشت"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Card>
             <CardContent className="p-6 text-center space-y-4">
               <TrendingUp className="w-12 h-12 mx-auto text-muted-foreground" />
@@ -377,14 +1384,255 @@ export default function AppPage() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Credit teaser widget */}
+          <Card className="mt-2">
+            <CardContent className="p-4 space-y-4">
+              <div className="text-right space-y-1">
+                <p className="text-xs font-medium text-primary">
+                  با هر روشی که دوست داری، می‌تونی اعتبار بگیری؛
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  نقدی، صندوق، کریپتو یا تیوین؛ سرمایه‌گذاری رو ادامه بده، حتی وقتی حسابت لَیـن.
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  روش‌های مختلف دریافت اعتبار
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/app/credit")}
+                  className="text-[11px] font-medium text-primary hover:underline"
+                >
+                  مشاهده همه
+                </button>
+              </div>
+              <div className="relative min-h-[92px]">
+                {creditSliderItems.map((opt, index) => {
+                  const Icon = opt.icon;
+                  const isActive = index === activeCreditSlide;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => router.push(opt.href)}
+                      className={`absolute inset-0 flex flex-col items-start rounded-lg border bg-muted/40 hover:bg-muted/70 transition-all px-3 py-3 text-right ${
+                        isActive
+                          ? "opacity-100 translate-y-0 pointer-events-auto"
+                          : "opacity-0 translate-y-2 pointer-events-none"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full mb-2">
+                        <span className="text-xs font-semibold">{opt.title}</span>
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                          <Icon className="w-4 h-4 text-primary" />
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        {opt.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-2 flex items-center justify-center gap-1.5">
+                {creditSliderItems.map((item, index) => {
+                  const isActive = index === activeCreditSlide;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setActiveCreditSlide(index)}
+                      className={`h-1.5 rounded-full transition-all ${
+                        isActive ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                      }`}
+                      aria-label={item.title}
+                    />
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+        </div>
+
+        {tickerLogos.length > 0 && (
+          <div className="fixed bottom-16 left-0 right-0 z-40">
+            <div className="mx-auto w-full max-w-[480px] border-t bg-background/95">
+              <LogoLoop
+                logos={tickerLogos}
+                speed={45}
+                gap={40}
+                ariaLabel="صندوق‌ها و قیمت‌ها"
+                className="px-3 py-1"
+              />
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col p-4 space-y-6">
-      <div className="w-full max-w-md mx-auto space-y-6">
+    <>
+      <div className="flex flex-col p-4 space-y-6">
+        <div className="w-full max-w-md mx-auto space-y-6">
+        {/* Main Wallet Card – بالای صفحه اصلی */}
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                ارزش کل دارایی کیف پول
+              </CardTitle>
+              <button
+                type="button"
+                className="text-[11px] font-medium text-primary hover:underline"
+                onClick={() => setIsWalletDetailsOpen((prev) => !prev)}
+              >
+                {isWalletDetailsOpen ? "بستن جزئیات" : "نمایش جزئیات"}
+              </button>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <p className="text-2xl font-bold tabular-nums">
+                {isWalletBalanceVisible ? (
+                  <>
+                    {formatNumber(mainWalletBalance)}{" "}
+                    <span className="text-base font-normal">تومان</span>
+                  </>
+                ) : (
+                  "•••••••"
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsWalletBalanceVisible((v) => !v)}
+                className="p-1 rounded-full hover:bg-muted transition-colors"
+                aria-label={isWalletBalanceVisible ? "مخفی کردن موجودی" : "نمایش موجودی"}
+              >
+                {isWalletBalanceVisible ? (
+                  <Eye className="w-5 h-5 text-muted-foreground" />
+                ) : (
+                  <EyeOff className="w-5 h-5 text-muted-foreground" />
+                )}
+              </button>
+            </div>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${
+                isWalletDetailsOpen ? "max-h-[500px] opacity-100 mt-3" : "max-h-0 opacity-0"
+              }`}
+            >
+              <div className="space-y-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">موجودی کیف پول</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(mainWalletBalance)} تومان
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">اعتبار وام</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(walletCredits.loan)} تومان
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">اعتبار اوراق صندوق</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(walletCredits.funds)} تومان
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">اعتبار کریپتو</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(walletCredits.crypto)} تومان
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">اعتبار TWIN</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatNumber(walletCredits.twin)} تومان
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-0">
+            <div className="flex items-stretch justify-between gap-2">
+              <button
+                type="button"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-muted bg-background hover:bg-muted/40 transition-colors py-2.5 text-xs"
+                onClick={() => {
+                  if (mainWalletCards.length === 0) {
+                    setWalletInlineMessage("برای واریز ابتدا باید کارت بانکی اضافه کنید.");
+                    return;
+                  }
+                  setWalletInlineMessage(null);
+                  setSelectedCardForDeposit(null);
+                  setDepositAmountInput("");
+                  setDepositAmountRial(0);
+                  setIsDepositModalOpen(true);
+                }}
+              >
+                <ArrowDownToLine className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">واریز</span>
+              </button>
+              <button
+                type="button"
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-muted bg-background hover:bg-muted/40 transition-colors py-2.5 text-xs"
+                onClick={() => {
+                  if (mainWalletCards.length === 0) {
+                    setWalletInlineMessage("برای برداشت ابتدا باید کارت بانکی اضافه کنید.");
+                    return;
+                  }
+                  setWalletInlineMessage(null);
+                  setSelectedCardForWithdraw(null);
+                  setWithdrawAmountInput("");
+                  setWithdrawAmountToman(0);
+                  setIsWithdrawModalOpen(true);
+                }}
+              >
+                <ArrowUpFromLine className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">برداشت</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setWalletInlineMessage(null);
+                  setIsCardsModalOpen(true);
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-muted bg-background hover:bg-muted/40 transition-colors py-2.5 text-xs"
+              >
+                <CreditCard className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium">کارت‌ها</span>
+              </button>
+            </div>
+
+            {walletInlineMessage && (
+              <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                {walletInlineMessage}
+              </div>
+            )}
+
+            {isWalletMoreInfoOpen && (
+              <div className="border-t pt-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">موجودی قابل برداشت</span>
+                  <span className="text-sm font-semibold tabular-nums">
+                    {isWalletBalanceVisible ? (
+                      <>
+                        {formatNumber(mainWalletBalance)}{" "}
+                        <span className="text-xs font-normal">تومان</span>
+                      </>
+                    ) : (
+                      "•••••••"
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Next Installment Due Date Card */}
         {nextInstallment && (
           <Card 
@@ -524,6 +1772,76 @@ export default function AppPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Credit teaser widget */}
+        <Card className="mt-2">
+          <CardContent className="p-4 space-y-4">
+            <div className="text-right space-y-1">
+              <p className="text-xs font-medium text-primary">
+                با هر روشی که دوست داری، می‌تونی اعتبار بگیری؛
+              </p>
+              <p className="text-xs text-muted-foreground">
+                نقدی، صندوق، کریپتو یا تیوین؛ سرمایه‌گذاری رو ادامه بده، حتی وقتی حسابت لَیـن.
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted-foreground">
+                روش‌های مختلف دریافت اعتبار
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push("/app/credit")}
+                className="text-[11px] font-medium text-primary hover:underline"
+              >
+                مشاهده همه
+              </button>
+            </div>
+            <div className="relative min-h-[92px]">
+              {creditSliderItems.map((opt, index) => {
+                const Icon = opt.icon;
+                const isActive = index === activeCreditSlide;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => router.push(opt.href)}
+                    className={`absolute inset-0 flex flex-col items-start rounded-lg border bg-muted/40 hover:bg-muted/70 transition-all px-3 py-3 text-right ${
+                      isActive
+                        ? "opacity-100 translate-y-0 pointer-events-auto"
+                        : "opacity-0 translate-y-2 pointer-events-none"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-2">
+                      <span className="text-xs font-semibold">{opt.title}</span>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {opt.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2 flex items-center justify-center gap-1.5">
+              {creditSliderItems.map((item, index) => {
+                const isActive = index === activeCreditSlide;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveCreditSlide(index)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      isActive ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                    }`}
+                    aria-label={item.title}
+                  />
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Price Changes Chart */}
         {latestInvestment && (
@@ -801,6 +2119,448 @@ export default function AppPage() {
           <PortfolioPieChart items={portfolio} />
         )}
 
+        {/* Main Wallet Cards Modal (افزودن کارت بانکی) */}
+        <Dialog open={isCardsModalOpen} onOpenChange={setIsCardsModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>افزودن کارت بانکی</DialogTitle>
+              <DialogDescription>لیست کارت‌های بانکی متصل به کیف پول اصلی شما.</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="main-wallet-card-number">
+                  شماره کارت
+                </label>
+                <input
+                  id="main-wallet-card-number"
+                  type="tel"
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="0000 0000 0000 0000"
+                  value={newCardNumber}
+                  onChange={(e) => {
+                    const { formatted } = normalizeCardInput(e.target.value);
+                    setNewCardNumber(formatted);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  کارت بانکی باید به نام دارنده حساب اصلی باشد.
+                </p>
+                {(() => {
+                  const digitsLen = newCardNumber.replace(/\D/g, "").length;
+                  if (digitsLen < 6) return null;
+                  const { bank } = getCardBankMeta(newCardNumber);
+                  const isValidBin = !!bank.bankName && bank.id !== "pasinno";
+                  if (!isValidBin) {
+                    return (
+                      <p className="text-xs text-destructive mt-1">
+                        شماره کارت اشتباه است.
+                      </p>
+                    );
+                  }
+                  const logoSrc = `/images/bankLogos/${bank.logo}`;
+                  return (
+                    <div className="flex items-center gap-2 text-xs mt-1">
+                      <div className="relative h-5 w-5 overflow-hidden rounded-full bg-muted">
+                        <Image
+                          src={logoSrc}
+                          alt={bank.bankName || "لوگوی بانک"}
+                          fill
+                          sizes="20px"
+                          className="object-contain"
+                        />
+                      </div>
+                      <span className="font-medium">
+                        {bank.bankName || "کارت بانکی"}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <Button
+                type="button"
+                className="w-full"
+                onClick={handleAddMainWalletCard}
+                disabled={(() => {
+                  const digitsLen = newCardNumber.replace(/\D/g, "").length;
+                  if (digitsLen !== 16) return true;
+                  const { bank } = getCardBankMeta(newCardNumber);
+                  const isValidBin = !!bank.bankName && bank.id !== "pasinno";
+                  return !isValidBin;
+                })()}
+              >
+                ثبت شماره کارت
+              </Button>
+
+              {mainWalletCards.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-sm font-medium">لیست کارت‌های بانکی</p>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {mainWalletCards.map((card) => {
+                      const { bank, masked } = getCardBankMeta(card);
+                      const logoSrc = `/images/bankLogos/${bank.logo}`;
+                      const isConfirming = deleteConfirmCard === card;
+                      return (
+                        <div
+                          key={card}
+                          className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-sm"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="relative h-6 w-6 overflow-hidden rounded-full bg-muted">
+                              <Image
+                                src={logoSrc}
+                                alt={bank.bankName || "لوگوی بانک"}
+                                fill
+                                sizes="24px"
+                                className="object-contain"
+                              />
+                            </div>
+                            <div className="flex flex-col items-start gap-0.5">
+                              <span className="text-[11px] font-medium">
+                                {bank.bankName || "کارت بانکی"}
+                              </span>
+                              <span dir="ltr" className="tabular-nums text-[11px] text-muted-foreground">
+                                {formatCardNumberForDisplay(masked)}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isConfirming) {
+                                removeMainWalletCard(card);
+                              } else {
+                                setDeleteConfirmCard(card);
+                              }
+                            }}
+                            className="ml-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <span
+                              className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[11px] leading-none"
+                            >
+                              ×
+                            </span>
+                            <span
+                              className={`overflow-hidden text-[11px] transition-all duration-200 ${
+                                isConfirming
+                                  ? "max-w-[200px] opacity-100 ml-1"
+                                  : "max-w-0 opacity-0"
+                              }`}
+                            >
+                              برای حذف مجددا کلیک کنید
+                            </span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Deposit Modal – برای حالت داشتن پورتفوی نیز در دسترس است */}
+        <Dialog open={isDepositModalOpen} onOpenChange={setIsDepositModalOpen}>
+          <DialogContent onClose={() => setIsDepositModalOpen(false)}>
+            <DialogHeader>
+              <DialogTitle>واریز به کیف پول</DialogTitle>
+              <DialogDescription>
+                از بین کارت‌های بانکی خود یک کارت را انتخاب کنید و مبلغ را وارد کنید.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              {/* Card selection */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">انتخاب کارت بانکی</p>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {mainWalletCards.map((card) => {
+                    const selected = selectedCardForDeposit === card;
+                    const { bank, masked } = getCardBankMeta(card);
+                    const logoSrc = `/images/bankLogos/${bank.logo}`;
+                    return (
+                      <button
+                        key={card}
+                        type="button"
+                        onClick={() => setSelectedCardForDeposit(card)}
+                        className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-sm transition-colors ${
+                          selected
+                            ? "border-primary bg-primary/10"
+                            : "border-muted bg-muted/40 hover:bg-muted/70"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="relative h-6 w-6 overflow-hidden rounded-full bg-muted">
+                            <Image
+                              src={logoSrc}
+                              alt={bank.bankName || "لوگوی بانک"}
+                              fill
+                              sizes="24px"
+                              className="object-contain"
+                            />
+                          </div>
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className="text-[11px] font-medium">
+                              {bank.bankName || "کارت بانکی"}
+                            </span>
+                            <span dir="ltr" className="tabular-nums text-[11px] text-muted-foreground">
+                              {formatCardNumberForDisplay(masked)}
+                            </span>
+                          </div>
+                        </div>
+                        {selected && (
+                          <span className="text-xs text-primary font-medium">انتخاب شده</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {mainWalletCards.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      هیچ کارتی ثبت نشده است. ابتدا کارت بانکی اضافه کنید.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Amount input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium" htmlFor="deposit-amount">
+                    مبلغ واریز (ریال)
+                  </label>
+                  <span className="text-[11px] text-muted-foreground">
+                    موجودی فعلی:{" "}
+                    <span className="font-medium tabular-nums">
+                      {formatNumber(mainWalletBalance)} تومان
+                    </span>
+                  </span>
+                </div>
+                <input
+                  id="deposit-amount"
+                  type="tel"
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="مثال: ۱,۰۰۰,۰۰۰"
+                  value={depositAmountInput}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setDepositAmountInput(raw);
+                    const normalized = normalizeAmountInput(raw);
+                    setDepositAmountRial(normalized);
+                  }}
+                />
+                {Math.floor(depositAmountRial / 10) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    معادل:{" "}
+                    <span className="font-medium">
+                      {formatTomanInWords(Math.floor(depositAmountRial / 10))}
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              <Button
+                type="button"
+                className="w-full"
+                disabled={
+                  isProcessingDeposit ||
+                  !selectedCardForDeposit ||
+                  Math.floor(depositAmountRial / 10) <= 0
+                }
+                onClick={() => {
+                  const depositToman = Math.floor(depositAmountRial / 10);
+                  if (!selectedCardForDeposit || depositToman <= 0) return;
+                  setIsProcessingDeposit(true);
+                  setTimeout(() => {
+                    setMainWalletBalance((prev) => {
+                      const next = Math.max(0, prev + depositToman);
+                      try {
+                        if (typeof window !== "undefined") {
+                          localStorage.setItem("mainWalletBalanceToman", String(next));
+                        }
+                      } catch {
+                        // ignore
+                      }
+                      return next;
+                    });
+                    setIsProcessingDeposit(false);
+                    setIsDepositModalOpen(false);
+                    setDepositAmountInput("");
+                    setDepositAmountRial(0);
+                    setSelectedCardForDeposit(null);
+                  }, 2000);
+                }}
+              >
+                {isProcessingDeposit ? "در حال پردازش..." : "پرداخت"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Withdraw Modal – برای حالت داشتن پورتفوی نیز در دسترس است */}
+        <Dialog open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen}>
+          <DialogContent onClose={() => setIsWithdrawModalOpen(false)}>
+            <DialogHeader>
+              <DialogTitle>برداشت به کارت بانکی</DialogTitle>
+              <DialogDescription>
+                کارت مقصد را انتخاب کرده و مبلغ برداشت را وارد کنید.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-primary">
+                <span>فقط موجودی کیف پول اصلی قابل برداشت است.</span>
+                <span className="font-semibold tabular-nums">
+                  {formatNumber(mainWalletBalance)} تومان
+                </span>
+              </div>
+
+              {/* Card selection */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">انتخاب کارت بانکی</p>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {mainWalletCards.map((card) => {
+                    const selected = selectedCardForWithdraw === card;
+                    const { bank, masked } = getCardBankMeta(card);
+                    const logoSrc = `/images/bankLogos/${bank.logo}`;
+                    return (
+                      <button
+                        key={card}
+                        type="button"
+                        onClick={() => setSelectedCardForWithdraw(card)}
+                        className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-sm transition-colors ${
+                          selected
+                            ? "border-primary bg-primary/10"
+                            : "border-muted bg-muted/40 hover:bg-muted/70"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="relative h-6 w-6 overflow-hidden rounded-full bg-muted">
+                            <Image
+                              src={logoSrc}
+                              alt={bank.bankName || "لوگوی بانک"}
+                              fill
+                              sizes="24px"
+                              className="object-contain"
+                            />
+                          </div>
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className="text-[11px] font-medium">
+                              {bank.bankName || "کارت بانکی"}
+                            </span>
+                            <span dir="ltr" className="tabular-nums text-[11px] text-muted-foreground">
+                              {formatCardNumberForDisplay(masked)}
+                            </span>
+                          </div>
+                        </div>
+                        {selected && (
+                          <span className="text-xs text-primary font-medium">انتخاب شده</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {mainWalletCards.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      هیچ کارتی ثبت نشده است. ابتدا کارت بانکی اضافه کنید.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Amount input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium" htmlFor="withdraw-amount">
+                    مبلغ برداشت (تومان)
+                  </label>
+                  <button
+                    type="button"
+                    className="text-[11px] font-medium text-primary disabled:text-muted-foreground hover:underline"
+                    disabled={mainWalletBalance <= 0}
+                    onClick={() => {
+                      if (mainWalletBalance <= 0) return;
+                      const formatted = mainWalletBalance.toLocaleString("fa-IR");
+                      setWithdrawAmountInput(formatted);
+                      setWithdrawAmountToman(mainWalletBalance);
+                    }}
+                  >
+                    حداکثر قابل برداشت
+                  </button>
+                </div>
+                <input
+                  id="withdraw-amount"
+                  type="tel"
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="مثال: ۱,۰۰۰,۰۰۰"
+                  value={withdrawAmountInput}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setWithdrawAmountInput(raw);
+                    const normalized = normalizeAmountInput(raw);
+                    setWithdrawAmountToman(Math.floor(normalized / 10));
+                  }}
+                />
+                {withdrawAmountToman > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    معادل:{" "}
+                    <span className="font-medium">
+                      {formatTomanInWords(withdrawAmountToman)}
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              <Button
+                type="button"
+                className="w-full"
+                disabled={
+                  isProcessingWithdraw ||
+                  !selectedCardForWithdraw ||
+                  withdrawAmountToman <= 0 ||
+                  withdrawAmountToman > mainWalletBalance
+                }
+                onClick={() => {
+                  if (
+                    !selectedCardForWithdraw ||
+                    withdrawAmountToman <= 0 ||
+                    withdrawAmountToman > mainWalletBalance
+                  ) {
+                    return;
+                  }
+                  setIsProcessingWithdraw(true);
+                  setTimeout(() => {
+                    setMainWalletBalance((prev) => {
+                      const next = Math.max(0, prev - withdrawAmountToman);
+                      try {
+                        if (typeof window !== "undefined") {
+                          localStorage.setItem("mainWalletBalanceToman", String(next));
+                        }
+                      } catch {
+                        // ignore
+                      }
+                      return next;
+                    });
+                    setIsProcessingWithdraw(false);
+                    setIsWithdrawModalOpen(false);
+                    setWithdrawAmountInput("");
+                    setWithdrawAmountToman(0);
+                    setSelectedCardForWithdraw(null);
+                  }, 2000);
+                }}
+              >
+                {isProcessingWithdraw ? "در حال پردازش..." : "برداشت"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Wallet: ساخت ولت or ولت من - above banner */}
         {!walletRegistered ? (
           <Card
@@ -872,8 +2632,23 @@ export default function AppPage() {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
-    </div>
+
+      {tickerLogos.length > 0 && (
+        <div className="fixed bottom-16 left-0 right-0 z-40">
+          <div className="mx-auto w-full max-w-[480px] border-t bg-background/95">
+            <LogoLoop
+              logos={tickerLogos}
+              speed={45}
+              gap={40}
+              ariaLabel="صندوق‌ها و قیمت‌ها"
+              className="px-3 py-1"
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

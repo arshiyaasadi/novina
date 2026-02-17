@@ -59,6 +59,7 @@
     "navigation": {
       "home": "خانه",
       "assets": "سرمایه گذاری",
+      "credit": "اعتبار",
       "activities": "فعالیت‌ها",
       "profile": "پروفایل"
     },
@@ -99,7 +100,13 @@
         "title": "تنظیمات برنامه",
         "about": "درباره ما",
         "activityHistory": "آخرین تاریخچه فعالیت",
-        "logout": "خروج"
+        "logout": "خروج",
+        "theme": {
+          "title": "حالت نمایش",
+          "light": "حالت روشن",
+          "dark": "حالت تیره",
+          "system": "همسان با سیستم"
+        }
       }
     },
     "activities": {
