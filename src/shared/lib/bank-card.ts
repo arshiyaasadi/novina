@@ -44,7 +44,7 @@ const handlerBank = (cardNumber: string): BankListEntry => {
 const maskPanHandler = (pan: string): string => {
   const normalized = normalizePan(pan);
   return normalized.length === 16
-    ? normalized.substring(12) + "******" + normalized.substring(0, 5)
+    ? normalized.substring(12) + "******" + normalized.substring(0, 4)
     : normalized;
 };
 
