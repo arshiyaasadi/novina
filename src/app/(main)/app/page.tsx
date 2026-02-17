@@ -391,6 +391,28 @@ export default function AppPage() {
     return `${wordifyfa(amount, 0)} تومان`;
   };
 
+  // نرمال‌سازی ورودی مبلغ (حذف جداکننده‌ها و تبدیل ارقام فارسی/عربی به انگلیسی)
+  const normalizeAmountInput = (raw: string): number => {
+    const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+    const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+    let digits = "";
+    for (const ch of raw) {
+      if (ch >= "0" && ch <= "9") {
+        digits += ch;
+      } else {
+        const pIndex = persianDigits.indexOf(ch);
+        const aIndex = arabicDigits.indexOf(ch);
+        if (pIndex !== -1) {
+          digits += String(pIndex);
+        } else if (aIndex !== -1) {
+          digits += String(aIndex);
+        }
+      }
+    }
+    if (!digits) return 0;
+    return Number(digits);
+  };
+
   const normalizeCardInput = (value: string): { digits: string; formatted: string } => {
     // تبدیل ارقام فارسی/عربی به انگلیسی و حذف کاراکترهای غیرعددی
     const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
