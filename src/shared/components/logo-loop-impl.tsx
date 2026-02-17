@@ -62,7 +62,8 @@ const useResizeObserver = (
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    if (!("ResizeObserver" in window)) {
+    // Fallback for environments without ResizeObserver support
+    if (typeof ResizeObserver === "undefined") {
       const handleResize = () => callback();
       window.addEventListener("resize", handleResize);
       callback();
