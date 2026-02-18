@@ -17,14 +17,17 @@ export default function AssetsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") ?? null;
+  const modeParam = searchParams.get("mode") ?? null;
   const activeTab =
-    tabParam === null
-      ? "trade"
-      : tabParam === "history"
-        ? "history"
-        : tabParam === "trade" || tabParam === "commit"
-          ? tabParam
-          : "funds";
+    modeParam === "commit"
+      ? "commit"
+      : tabParam === null
+        ? "trade"
+        : tabParam === "history"
+          ? "history"
+          : tabParam === "trade" || tabParam === "commit"
+            ? tabParam
+            : "funds";
 
   // وقتی کاربر مستقیماً /app/assets را باز می‌کند (بدون tab)، به تب معامله برو
   useEffect(() => {

@@ -39,6 +39,7 @@ export function addTradeOrder(order: Omit<StoredTradeOrder, "id" | "createdAt" |
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 2 * 60 * 1000).toISOString(), // 2 min
   };
+  if (typeof window === "undefined") return created;
   const list = getOrders();
   list.unshift(created);
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
@@ -46,6 +47,7 @@ export function addTradeOrder(order: Omit<StoredTradeOrder, "id" | "createdAt" |
 }
 
 export function updateTradeOrderStatus(id: string, status: TradeOrderStatus): void {
+  if (typeof window === "undefined") return;
   const list = getOrders();
   const idx = list.findIndex((o) => o.id === id);
   if (idx === -1) return;
