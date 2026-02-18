@@ -1624,7 +1624,7 @@ export default function AppPage() {
           <Card className="mt-2">
             <CardContent className="p-4 space-y-4">
               <div className="text-right space-y-1">
-                <p className="text-xs font-medium text-primary">
+                <p className="text-sm font-medium text-primary">
                   با هر روشی که دوست داری، می‌تونی اعتبار بگیری؛
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -2209,7 +2209,7 @@ export default function AppPage() {
         <Card className="mt-2">
           <CardContent className="p-4 space-y-4">
             <div className="text-right space-y-1">
-              <p className="text-xs font-medium text-primary">
+              <p className="text-sm font-medium text-primary">
                 با هر روشی که دوست داری، می‌تونی اعتبار بگیری؛
               </p>
               <p className="text-xs text-muted-foreground">
@@ -2740,26 +2740,8 @@ export default function AppPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Wallet: ساخت ولت or ولت من - above banner */}
-        {!walletRegistered ? (
-          <Card
-            className="cursor-pointer transition-all hover:bg-muted/50 active:scale-[0.98] border-2 border-dashed border-primary/30"
-            onClick={() => router.push("/app/wallet/register")}
-          >
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Wallet className="w-8 h-8 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{tWallet("createWallet")}</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {tWallet("createWalletDescription")}
-                </p>
-              </div>
-              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        ) : (
+        {/* Wallet: ولت من - above banner (only when registered) */}
+        {walletRegistered && (
           <Card
             className="cursor-pointer transition-all hover:bg-muted/50 active:scale-[0.98]"
             onClick={() => router.push("/app/wallet")}
