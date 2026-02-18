@@ -72,6 +72,7 @@ Request → Controller → Service → AI API (GAPGPT)
 - Login/Register
 - مدیریت session
 - ساختار: `controllers/`, `services/`, `repositories/`, `models/`, `types/`
+- **کاربر لاگین‌شده (گلوبال):** DTO با فیلدهای شماره همراه، کد ملی، نام، نام خانوادگی، تاریخ تولد (شمسی) در استور Zustand و در صورت نیاز در localStorage نگهداری می‌شود. جزئیات در [user-session.md](user-session.md).
 
 ### Content Domain
 - مدیریت محتوا

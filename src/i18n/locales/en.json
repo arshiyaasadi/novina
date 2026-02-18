@@ -41,7 +41,9 @@
         "firstName": "First Name",
         "lastName": "Last Name",
         "email": "Email",
-        "verifyButton": "Complete Basic Verification"
+        "verifyButton": "Complete Basic Verification",
+        "completeProfileMessage": "To use the services you need to complete your profile",
+        "completeProfileButton": "Complete Profile"
       },
       "verification": {
         "title": "Verification",
@@ -140,6 +142,23 @@
         "periodOneYear": "Repayment period: 1 year",
         "repaymentLumpSum": "Lump sum repayment",
         "freezeWarning": "The amount you put as collateral will be frozen and cannot be withdrawn until the loan is repaid."
+      },
+      "walletSummary": {
+        "title": "Wallet balance",
+        "usdt": "USDT wallet",
+        "btc": "BTC wallet",
+        "tomanUnit": "Toman"
+      },
+      "allocation": {
+        "title": "Wallet allocation",
+        "description": "Choose how much of the investment is paid from each wallet.",
+        "usdtLabel": "Pay from USDT wallet (Toman)",
+        "btcLabel": "Pay from BTC wallet (Toman equivalent)",
+        "remainingLabel": "Remaining amount to fund",
+        "topupButton": "Top up account",
+        "errors": {
+          "totalMismatch": "The sum of allocations must exactly match the investment amount."
+        }
       }
     },
     "installments": {

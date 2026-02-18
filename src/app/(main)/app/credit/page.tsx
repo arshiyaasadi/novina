@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
 import { useRouter } from "next/navigation";
 import { Banknote, Landmark, Coins, Sparkles, ArrowLeft, Calendar } from "lucide-react";
+import { getLoanRequests } from "./loan/lib/loan-flow-storage";
 
 const creditOptions = [
   {
@@ -18,26 +19,60 @@ const creditOptions = [
     title: "اوراق صندوق‌های سرمایه‌گذاری نوین",
     description: "استفاده از اوراق صندوق‌های نوین به عنوان پشتوانه اعتبار.",
     icon: Landmark,
-    href: "/app/credit/funds",
+    href: "/app/assets/trade?mode=commit&tab=issue",
   },
   {
     id: "crypto",
     title: "دارایی کریپتو",
     description: "وثیقه‌گذاری دارایی‌های کریپتویی برای دریافت اعتبار.",
     icon: Coins,
-    href: "/app/credit/crypto",
+    href: "/app/credit/assets",
   },
   {
     id: "twin",
     title: "توکن تیوین TWIN",
     description: "دریافت اعتبار بر اساس ارزش توکن تیوین (TWIN).",
     icon: Sparkles,
-    href: "/app/credit/twin",
+    href: "/app/credit/assets",
   },
 ];
 
+function getRequestCountByType(): Record<string, number> {
+  if (typeof window === "undefined") return { loan: 0, funds: 0, crypto: 0, twin: 0 };
+  const loan = getLoanRequests().length;
+  let funds = 0;
+  let crypto = 0;
+  let twin = 0;
+  try {
+    const fr = window.localStorage.getItem("fundRequests");
+    if (fr) {
+      const arr = JSON.parse(fr);
+      if (Array.isArray(arr)) funds = arr.length;
+    }
+    const cr = window.localStorage.getItem("cryptoRequests");
+    if (cr) {
+      const arr = JSON.parse(cr);
+      if (Array.isArray(arr)) crypto = arr.length;
+    }
+    const tr = window.localStorage.getItem("twinRequests");
+    if (tr) {
+      const arr = JSON.parse(tr);
+      if (Array.isArray(arr)) twin = arr.length;
+    }
+  } catch {
+    // ignore
+  }
+  return { loan, funds, crypto, twin };
+}
+
 export default function CreditPage() {
   const router = useRouter();
+  const [requestCounts, setRequestCounts] = useState<Record<string, number>>(() =>
+    typeof window !== "undefined" ? getRequestCountByType() : { loan: 0, funds: 0, crypto: 0, twin: 0 }
+  );
+  useEffect(() => {
+    setRequestCounts(getRequestCountByType());
+  }, []);
 
   const nextInstallment = useMemo<{
     dueDate: Date;
@@ -143,26 +178,32 @@ export default function CreditPage() {
           <CardHeader>
             <CardTitle className="text-base">روش‌های دریافت اعتبار</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="grid grid-cols-2 gap-3">
             {creditOptions.map((opt) => {
               const Icon = opt.icon;
+              const count = requestCounts[opt.id] ?? 0;
               return (
                 <button
                   key={opt.id}
                   type="button"
                   onClick={() => router.push(opt.href)}
-                  className="w-full flex items-center justify-between rounded-lg border bg-muted/40 hover:bg-muted/70 transition-colors px-3 py-3 text-right"
+                  className="flex flex-col items-stretch rounded-lg border bg-muted/40 hover:bg-muted/70 transition-colors px-3 py-3 text-right"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                      <Icon className="w-5 h-5 text-primary" />
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                      <Icon className="w-4 h-4 text-primary" />
                     </div>
-                    <div className="space-y-0.5 text-right">
-                      <p className="text-sm font-semibold">{opt.title}</p>
-                      <p className="text-xs text-muted-foreground">{opt.description}</p>
-                    </div>
+                    {count > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 rounded-full bg-primary/20 text-primary text-[11px] font-medium px-1.5">
+                        {count.toLocaleString("fa-IR")}
+                      </span>
+                    )}
                   </div>
-                  <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-sm font-semibold leading-tight">{opt.title}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5 line-clamp-2">
+                    {opt.description}
+                  </p>
+                  <ArrowLeft className="w-4 h-4 text-muted-foreground self-end mt-1" />
                 </button>
               );
             })}

@@ -4,7 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
-import { Banknote, Landmark, Coins, Sparkles, ArrowLeft } from "lucide-react";
+import { Banknote, Landmark, Coins, Sparkles, ArrowLeft, Info, Check } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
+import { CreditReportStep } from "@/shared/components/credit/credit-report-step";
+import { VideoVerificationModal } from "@/shared/components/credit/video-verification-modal";
+import {
+  getLoanFlowDraft,
+  setLoanFlowDraft,
+  clearLoanFlowDraft,
+  getLoanRequests,
+  addLoanRequest,
+} from "./lib/loan-flow-storage";
+import type { StoredLoanRequest } from "./lib/loan-flow-storage";
+import { appendMainWalletJournalEntry } from "../../wallet/lib/main-wallet-storage";
+import { useMainWalletStore } from "../../wallet/store/main-wallet-store";
 
 type LoanPeriod = 3 | 6 | 9 | 12;
 
@@ -105,6 +118,22 @@ const MIN_LOAN = 10_000_000;
 const MAX_LOAN = 100_000_000;
 const STEP_LOAN = 1_000_000;
 
+const LOAN_STEP_LABELS: Record<1 | 2 | 3 | 4 | 5, string> = {
+  1: "مبلغ و مدت بازپرداخت",
+  2: "اقساط",
+  3: "گزارش اعتبار سنجی",
+  4: "احراز هویت ویدیویی",
+  5: "قرارداد",
+};
+
+const LOAN_STEP_CHECKLIST: { step: 1 | 2 | 3 | 4 | 5; label: string }[] = [
+  { step: 1, label: "انتخاب مبلغ وام و مدت بازپرداخت" },
+  { step: 2, label: "مشاهده دفترچه اقساط و جزییات" },
+  { step: 3, label: "دریافت گزارش اعتبار سنجی (کد ملی و استعلام رتبه)" },
+  { step: 4, label: "احراز هویت ویدیویی (ضبط ویدیو کوتاه)" },
+  { step: 5, label: "خواندن و امضای قرارداد به‌صورت آنلاین" },
+];
+
 export const formatNumber = (num: number): string =>
   num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
@@ -150,11 +179,16 @@ export default function LoanCreditPage() {
   const [loanAmount, setLoanAmount] = useState<number>(10_000_000);
   const [rawAmountInput, setRawAmountInput] = useState<string>(formatNumber(10_000_000));
   const [selectedPeriod, setSelectedPeriod] = useState<LoanPeriod | null>(6);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [isAgreementAccepted, setIsAgreementAccepted] = useState(false);
   const [showFlow, setShowFlow] = useState(false);
+  const [videoVerificationNationalId, setVideoVerificationNationalId] = useState("");
+  const [creditReportRequested, setCreditReportRequested] = useState(false);
+  const [videoVerificationModalOpen, setVideoVerificationModalOpen] = useState(false);
+  const [videoVerificationSuccess, setVideoVerificationSuccess] = useState(false);
+  const [loanRequestsGuideOpen, setLoanRequestsGuideOpen] = useState(false);
 
-  // حفظ آخرین انتخاب کاربر برای تجربه بهتر
+  // بارگذاری اولیه مبلغ/دوره (وقتی پیش‌نویس نداریم یا برای اولین بار)
   useEffect(() => {
     try {
       const savedAmount = localStorage.getItem("creditLoanAmount");
@@ -178,16 +212,29 @@ export default function LoanCreditPage() {
     }
   }, []);
 
+  // پرسیست پیش‌نویس در هر مرحله وقتی کاربر داخل فلو است
   useEffect(() => {
-    try {
-      localStorage.setItem("creditLoanAmount", String(loanAmount));
-      if (selectedPeriod) {
-        localStorage.setItem("creditLoanPeriod", String(selectedPeriod));
-      }
-    } catch {
-      // ignore
-    }
-  }, [loanAmount, selectedPeriod]);
+    if (!showFlow) return;
+    setLoanFlowDraft({
+      loanAmount,
+      selectedPeriod,
+      step,
+      videoVerificationNationalId,
+      creditReportRequested,
+      videoVerificationSuccess,
+      isAgreementAccepted,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [
+    showFlow,
+    loanAmount,
+    selectedPeriod,
+    step,
+    videoVerificationNationalId,
+    creditReportRequested,
+    videoVerificationSuccess,
+    isAgreementAccepted,
+  ]);
 
   // اگر مبلغ کمتر از ۵۰ میلیون شد، دوره ۱۲ ماهه معتبر نیست
   useEffect(() => {
@@ -264,13 +311,9 @@ export default function LoanCreditPage() {
     }
 
     try {
-      // ذخیره درخواست وام جدید با وضعیت فعال
       if (typeof window !== "undefined") {
-        const stored = window.localStorage.getItem("loanRequests");
-        const existing: LoanRequest[] = stored ? JSON.parse(stored) : [];
         const option = LOAN_OPTIONS.find((opt) => opt.months === selectedPeriod);
-
-        const newRequest: LoanRequest = {
+        const newRequest: StoredLoanRequest = {
           id: `loan-${Date.now()}`,
           amount: loanAmount,
           requestedAt: new Date().toISOString(),
@@ -284,34 +327,20 @@ export default function LoanCreditPage() {
           firstDueDate: loanDetails.firstDueDate.toISOString(),
         };
 
-        existing.unshift(newRequest);
-        window.localStorage.setItem("loanRequests", JSON.stringify(existing));
+        addLoanRequest(newRequest);
+        clearLoanFlowDraft();
 
         // به‌روزرسانی اعتبار وام در کیف پول و موجودی کیف پول
-        const storedCredits = window.localStorage.getItem("walletCredits");
-        let credits = { loan: 0, funds: 0, crypto: 0, twin: 0 };
-        if (storedCredits) {
-          try {
-            const parsed = JSON.parse(storedCredits);
-            if (parsed && typeof parsed === "object") {
-              credits = {
-                loan: typeof parsed.loan === "number" ? parsed.loan : 0,
-                funds: typeof parsed.funds === "number" ? parsed.funds : 0,
-                crypto: typeof parsed.crypto === "number" ? parsed.crypto : 0,
-                twin: typeof parsed.twin === "number" ? parsed.twin : 0,
-              };
-            }
-          } catch {
-            // ignore
-          }
-        }
-        credits.loan += loanAmount;
-        window.localStorage.setItem("walletCredits", JSON.stringify(credits));
+        const { walletCredits: credits, setWalletCredits: setCredits, mainWalletBalance: prevBalance, setMainWalletBalance: setBalance } = useMainWalletStore.getState();
+        setCredits({ ...credits, loan: credits.loan + loanAmount });
+        setBalance(Math.max(0, prevBalance + loanAmount));
 
-        const storedBalance = window.localStorage.getItem("mainWalletBalanceToman");
-        const prevBalance = storedBalance ? Number(storedBalance) : 0;
-        const nextBalance = Math.max(0, prevBalance + loanAmount);
-        window.localStorage.setItem("mainWalletBalanceToman", String(nextBalance));
+        appendMainWalletJournalEntry({
+          type: "credit_loan",
+          amount: loanAmount,
+          source: "loan",
+          description: "اعتبار وام",
+        });
       }
     } catch (error) {
       console.error("Failed to store loan request:", error);
@@ -343,101 +372,245 @@ export default function LoanCreditPage() {
               <CardTitle className="text-base">اعتبار نقدی با وام</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                با وام نقدی نوین، می‌تونی بدون خالی‌کردن حسابت، سرمایه‌گذاری رو شروع یا تقویت کنی. فقط مبلغ و مدت
-                بازپرداخت رو انتخاب می‌کنی و بقیه مسیر رو ما برات هموار می‌کنیم.
-              </p>
-              <ul className="text-xs text-muted-foreground space-y-1 list-disc pr-4">
-                <li>انتخاب مبلغ وام بین ۱۰ تا ۱۰۰ میلیون تومان.</li>
-                <li>انتخاب مدت بازپرداخت ۳، ۶، ۹ یا ۱۲ ماه (برای مبالغ بالاتر).</li>
-                <li>مشاهده دفترچه اقساط و جزییات قبل از تایید.</li>
-                <li>خواندن و امضای قرارداد به‌صورت آنلاین.</li>
-              </ul>
-              <div className="pt-2">
-                <Button
-                  type="button"
-                  className="w-full"
-                  onClick={() => {
-                    setShowFlow(true);
-                    setStep(1);
-                    setIsAgreementAccepted(false);
-                    window.scrollTo?.({ top: 0, behavior: "smooth" });
-                  }}
-                >
-                  دریافت وام جدید
-                </Button>
-              </div>
+              {(() => {
+                const draftForCard = getLoanFlowDraft();
+                return (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      با وام نقدی نوین، می‌تونی بدون خالی‌کردن حسابت، سرمایه‌گذاری رو شروع یا تقویت کنی. فقط مبلغ و مدت
+                      بازپرداخت رو انتخاب می‌کنی و بقیه مسیر رو ما برات هموار می‌کنیم.
+                    </p>
+                    <ul className="text-xs text-muted-foreground space-y-2 pr-4">
+                      {LOAN_STEP_CHECKLIST.map(({ step: stepNum, label }) => {
+                        const done = !!draftForCard && draftForCard.step > stepNum;
+                        return (
+                          <li
+                            key={stepNum}
+                            className={`flex items-center gap-2 ${done ? "text-muted-foreground" : ""}`}
+                          >
+                            <span
+                              className={`shrink-0 flex h-5 w-5 items-center justify-center rounded-full border ${
+                                done
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-muted-foreground/50"
+                              }`}
+                            >
+                              {done ? <Check className="h-3 w-3" /> : <span className="text-[10px]">{stepNum}</span>}
+                            </span>
+                            <span className={done ? "line-through opacity-80" : ""}>{label}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        className="w-full"
+                        onClick={() => {
+                          const draft = getLoanFlowDraft();
+                          if (draft) {
+                            setLoanAmount(draft.loanAmount);
+                            setRawAmountInput(formatNumber(draft.loanAmount));
+                            setSelectedPeriod(draft.selectedPeriod);
+                            setStep(draft.step);
+                            setVideoVerificationNationalId(draft.videoVerificationNationalId);
+                            setCreditReportRequested(draft.creditReportRequested);
+                            setVideoVerificationSuccess(draft.videoVerificationSuccess);
+                            setIsAgreementAccepted(draft.isAgreementAccepted);
+                          } else {
+                            setStep(1);
+                            setCreditReportRequested(false);
+                            setVideoVerificationSuccess(false);
+                            setIsAgreementAccepted(false);
+                          }
+                          setShowFlow(true);
+                          window.scrollTo?.({ top: 0, behavior: "smooth" });
+                        }}
+                      >
+                        {draftForCard
+                          ? `ادامه: ${LOAN_STEP_LABELS[draftForCard.step]}`
+                          : "دریافت وام جدید"}
+                      </Button>
+                    </div>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
 
-        {/* لیست درخواست‌های ثبت‌شده */}
+        {/* سکشن درخواست‌های وام (بدون کارت) */}
         {!showFlow && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">درخواست‌های وام</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              <p className="text-xs text-muted-foreground">
-                در این بخش آخرین درخواست‌های وام تو رو می‌بینی. وضعیت هر درخواست مشخصه و می‌تونی با زدن روی هر مورد،
-                جزییات کاملش رو ببینی.
-              </p>
-              <div className="space-y-2">
-                {MOCK_LOAN_REQUESTS.map((req) => {
-                  const requestedDate = new Date(req.requestedAt);
-                  return (
-                    <button
-                      key={req.id}
-                      type="button"
-                      onClick={() => {
-                        if (req.status === "active") {
-                          // برای وام‌های فعال فعلاً به نمای اقساط با ایندکس ۰ می‌رویم
-                          router.push("/app/activities/installments?index=0");
-                        } else {
-                          router.push(`/app/credit/loan/${req.id}`);
-                        }
-                      }}
-                      className="w-full text-right rounded-lg border bg-muted/40 hover:bg-muted/70 transition-colors px-3 py-3 text-xs"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="space-y-0.5">
-                          <p className="font-semibold tabular-nums">
-                            {formatNumber(req.amount)} تومان
-                          </p>
-                          <p className="text-[11px] text-muted-foreground tabular-nums">
-                            تاریخ درخواست:{" "}
-                            {requestedDate.toLocaleDateString("fa-IR", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </p>
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-base font-semibold">درخواست‌های وام</h2>
+              <button
+                type="button"
+                onClick={() => setLoanRequestsGuideOpen(true)}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Info className="w-3.5 h-3.5" />
+                راهنما
+              </button>
+            </div>
+            <div className="space-y-2">
+              {(() => {
+                const draft = getLoanFlowDraft();
+                const savedRequests = getLoanRequests();
+                const hasDraft = !!draft;
+
+                return (
+                  <>
+                    {hasDraft && draft && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoanAmount(draft.loanAmount);
+                          setRawAmountInput(formatNumber(draft.loanAmount));
+                          setSelectedPeriod(draft.selectedPeriod);
+                          setStep(draft.step);
+                          setVideoVerificationNationalId(draft.videoVerificationNationalId);
+                          setCreditReportRequested(draft.creditReportRequested);
+                          setVideoVerificationSuccess(draft.videoVerificationSuccess);
+                          setIsAgreementAccepted(draft.isAgreementAccepted);
+                          setShowFlow(true);
+                          window.scrollTo?.({ top: 0, behavior: "smooth" });
+                        }}
+                        className="w-full text-right rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors px-3 py-3 text-xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="space-y-0.5">
+                            <p className="font-semibold tabular-nums">
+                              {formatNumber(draft.loanAmount)} تومان
+                            </p>
+                            <p className="text-[11px] text-muted-foreground tabular-nums">
+                              آخرین به‌روزرسانی:{" "}
+                              {new Date(draft.updatedAt).toLocaleDateString("fa-IR", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </p>
+                          </div>
+                          <span className="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-700">
+                            در حال تکمیل – مرحله {draft.step} از ۵
+                          </span>
                         </div>
-                        <span
-                          className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-medium ${req.statusBadgeClass}`}
-                        >
-                          {req.statusLabel}
-                        </span>
-                      </div>
-                      {req.status === "rejected" && req.rejectReason && (
-                        <p className="mt-1 text-[11px] text-red-600">
-                          دلیل رد: {req.rejectReason}
-                        </p>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                      </button>
+                    )}
+                    {(savedRequests.length > 0 ? savedRequests : MOCK_LOAN_REQUESTS).map(
+                      (req: LoanRequest | StoredLoanRequest) => {
+                        const requestedDate = new Date(req.requestedAt);
+                        return (
+                          <button
+                            key={req.id}
+                            type="button"
+                            onClick={() => {
+                              if (req.status === "active") {
+                                router.push("/app/activities/installments?index=0");
+                              } else {
+                                router.push(`/app/credit/loan/${req.id}`);
+                              }
+                            }}
+                            className="w-full text-right rounded-lg border bg-muted/40 hover:bg-muted/70 transition-colors px-3 py-3 text-xs"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="space-y-0.5">
+                                <p className="font-semibold tabular-nums">
+                                  {formatNumber(req.amount)} تومان
+                                </p>
+                                <p className="text-[11px] text-muted-foreground tabular-nums">
+                                  تاریخ درخواست:{" "}
+                                  {requestedDate.toLocaleDateString("fa-IR", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                  })}
+                                </p>
+                              </div>
+                              <span
+                                className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-medium ${req.statusBadgeClass}`}
+                              >
+                                {req.statusLabel}
+                              </span>
+                            </div>
+                            {req.status === "rejected" && req.rejectReason && (
+                              <p className="mt-1 text-[11px] text-red-600">
+                                دلیل رد: {req.rejectReason}
+                              </p>
+                            )}
+                          </button>
+                        );
+                      }
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </section>
         )}
+
+        {/* مودال راهنمای وضعیت درخواست‌های وام */}
+        <Dialog open={loanRequestsGuideOpen} onOpenChange={setLoanRequestsGuideOpen}>
+          <DialogContent onClose={() => setLoanRequestsGuideOpen(false)}>
+            <DialogHeader>
+              <DialogTitle>وضعیت درخواست‌های وام</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 pt-2">
+              {[
+                {
+                  label: "در حال تکمیل",
+                  description: "درخواست هنوز تکمیل نشده؛ می‌توانی از لیست ادامه بدهی.",
+                  badgeClass: "bg-amber-100 text-amber-700",
+                },
+                {
+                  label: "در انتظار تایید",
+                  description: "درخواست ثبت شده و در حال بررسی توسط تیم ماست.",
+                  badgeClass: "bg-amber-100 text-amber-700",
+                },
+                {
+                  label: "فعال",
+                  description: "وام تأیید و فعال است؛ می‌توانی اقساط را ببینی و پرداخت کنی.",
+                  badgeClass: "bg-emerald-100 text-emerald-700",
+                },
+                {
+                  label: "در انتظار واریز",
+                  description: "وام تأیید شده و در انتظار واریز به حساب توست.",
+                  badgeClass: "bg-blue-100 text-blue-700",
+                },
+                {
+                  label: "لغو شده",
+                  description: "درخواست یا وام توسط کاربر یا سامانه لغو شده.",
+                  badgeClass: "bg-slate-100 text-slate-600",
+                },
+                {
+                  label: "رد شده",
+                  description: "درخواست پس از بررسی رد شده است.",
+                  badgeClass: "bg-red-100 text-red-700",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-start gap-3 rounded-lg border p-3 text-right"
+                >
+                  <span
+                    className={`inline-flex shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-medium ${item.badgeClass}`}
+                  >
+                    {item.label}
+                  </span>
+                  <p className="text-xs text-muted-foreground flex-1">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {showFlow && step === 1 && (
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">مبلغ وام و شرایط بازپرداخت</CardTitle>
-                <span className="text-[11px] text-muted-foreground">مرحله ۱ از ۳</span>
+                <span className="text-[11px] text-muted-foreground">مرحله ۱ از ۵</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-0">
@@ -529,7 +702,7 @@ export default function LoanCreditPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">اقساط</CardTitle>
-                <span className="text-[11px] text-muted-foreground">مرحله ۲ از ۳</span>
+                <span className="text-[11px] text-muted-foreground">مرحله ۲ از ۵</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-0">
@@ -611,9 +784,12 @@ export default function LoanCreditPage() {
                       type="button"
                       size="sm"
                       className="flex-1"
-                      onClick={() => setStep(3)}
+                      onClick={() => {
+                        setStep(3);
+                        window.scrollTo?.({ top: 0, behavior: "smooth" });
+                      }}
                     >
-                      مرحله بعد: دریافت وام
+                      مرحله بعد: رتبه اعتباری
                     </Button>
                     <Button
                       type="button"
@@ -631,13 +807,98 @@ export default function LoanCreditPage() {
           </Card>
         )}
 
-        {/* مرحله نهایی: نمایش قرارداد و امضای آن */}
+        {/* مرحله ۳: دریافت گزارش اعتبار سنجی */}
         {showFlow && step === 3 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
+                <CardTitle className="text-base">دریافت گزارش اعتبار سنجی</CardTitle>
+                <span className="text-[11px] text-muted-foreground">مرحله ۳ از ۵</span>
+              </div>
+              <p className="text-xs text-muted-foreground pt-1">مرحله ۱: وارد کردن کد ملی</p>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-0">
+              <CreditReportStep
+                value={videoVerificationNationalId}
+                lockedNationalId={creditReportRequested ? videoVerificationNationalId : undefined}
+                creditGrade="A+"
+                onInquiry={(nationalId) => {
+                  setVideoVerificationNationalId(nationalId);
+                  setCreditReportRequested(true);
+                }}
+                onContinue={() => {
+                  setStep(4);
+                  window.scrollTo?.({ top: 0, behavior: "smooth" });
+                }}
+                onBack={() => setStep(2)}
+                backLabel="بازگشت"
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* مرحله ۴: احراز هویت ویدیویی — توضیحات و دکمه شروع؛ یا نمایش احراز موفق */}
+        {showFlow && step === 4 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">احراز هویت ویدیویی</CardTitle>
+                <span className="text-[11px] text-muted-foreground">مرحله ۴ از ۵</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-0">
+              {videoVerificationSuccess ? (
+                <>
+                  <p className="text-lg font-semibold text-primary text-center py-4">
+                    احراز هویت موفق
+                  </p>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      type="button"
+                      className="flex-1"
+                      onClick={() => {
+                        setStep(5);
+                        window.scrollTo?.({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      ادامه
+                    </Button>
+                    <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(3)}>
+                      بازگشت
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    برای تکمیل درخواست وام، احراز هویت به‌صورت ویدیویی لازم است. ویدیوی کوتاهی از خودتان ضبط
+                    می‌کنید و متن اعلام‌شده را می‌خوانید. پس از تأیید، به مرحله بعد هدایت می‌شوید.
+                  </p>
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={() => setVideoVerificationModalOpen(true)}
+                  >
+                    شروع فرایند احراز هویت
+                  </Button>
+                  <div className="flex gap-2 pt-2">
+                    <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(3)}>
+                      بازگشت
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* مرحله نهایی: نمایش قرارداد و امضای آن */}
+        {showFlow && step === 5 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
                 <CardTitle className="text-base">دریافت وام و تایید قرارداد</CardTitle>
-                <span className="text-[11px] text-muted-foreground">مرحله ۳ از ۳</span>
+                <span className="text-[11px] text-muted-foreground">مرحله ۵ از ۵</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-0">
@@ -696,7 +957,7 @@ export default function LoanCreditPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(4)}
                 >
                   بازگشت
                 </Button>
@@ -704,6 +965,12 @@ export default function LoanCreditPage() {
             </CardContent>
           </Card>
         )}
+
+        <VideoVerificationModal
+          open={videoVerificationModalOpen}
+          onOpenChange={setVideoVerificationModalOpen}
+          onSuccess={() => setVideoVerificationSuccess(true)}
+        />
       </div>
     </div>
   );

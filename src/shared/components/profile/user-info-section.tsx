@@ -29,8 +29,11 @@ export function UserInfoSection({
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
             <User className="h-6 w-6 text-primary" />
           </div>
+          <p className="text-sm text-muted-foreground text-center leading-relaxed">
+            {t("userInfo.completeProfileMessage")}
+          </p>
           <Button onClick={onVerifyClick} className="w-full">
-            {t("userInfo.verifyButton")}
+            {t("userInfo.completeProfileButton")}
           </Button>
         </CardContent>
       </Card>

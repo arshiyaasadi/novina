@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Activity, Calendar, Filter, DollarSign, CreditCard, ChevronDown, ChevronUp, ChevronLeft, Eye } from "lucide-react";
+import { Activity, Calendar, Filter, DollarSign, CreditCard, ChevronDown, ChevronUp, ChevronLeft, Eye, TrendingUp, TrendingDown } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { getTradeOrders, type StoredTradeOrder } from "../assets/lib/trade-orders-storage";
 
 type InvestmentData = {
   amount: number;
@@ -30,7 +31,7 @@ type InvestmentData = {
   status: string;
 };
 
-type ActivityType = "all" | "investment" | "loan" | "installment_payment";
+type ActivityType = "all" | "investment" | "loan" | "installment_payment" | "trade";
 
 type ActivityRecord = {
   id: string;
@@ -47,12 +48,18 @@ export default function ActivitiesPage() {
   const t = useTranslations("app.activities");
   const tActivities = useTranslations("app.activities.types");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [investments, setInvestments] = useState<InvestmentData[]>([]);
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activityTypeFilter, setActivityTypeFilter] = useState<ActivityType>("all");
   const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
   const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
+
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    if (typeParam === "trade") setActivityTypeFilter("trade");
+  }, [searchParams]);
 
   useEffect(() => {
     try {
@@ -104,15 +111,24 @@ export default function ActivitiesPage() {
     setExpandedActivities(newExpanded);
   };
 
-  // Combine investments and activities into a single list
+  const ORDER_STATUS_LABEL: Record<StoredTradeOrder["status"], string> = {
+  draft: "پیش‌نویس",
+  pending: "در انتظار",
+  completed: "تکمیل شده",
+  expired: "منقضی شده",
+  cancelled: "لغو شده",
+};
+
+  // Combine investments, activities, and trade orders into a single list
   const allActivities: Array<{
     id: string;
-    type: "investment" | "loan" | "installment_payment" | "loan_settlement" | "custom_payment";
+    type: "investment" | "loan" | "installment_payment" | "loan_settlement" | "custom_payment" | "trade";
     title: string;
     amount: number;
     createdAt: string;
     investment?: InvestmentData;
     activity?: ActivityRecord;
+    tradeOrder?: StoredTradeOrder;
     description?: string;
   }> = [];
 
@@ -153,6 +169,19 @@ export default function ActivitiesPage() {
     });
   });
 
+  // Add trade orders (تاریخچه معاملات)
+  const tradeOrders = getTradeOrders();
+  tradeOrders.forEach((order) => {
+    allActivities.push({
+      id: order.id,
+      type: "trade",
+      title: order.type === "issue" ? "صدور" : "ابطال",
+      amount: order.amount,
+      createdAt: order.createdAt,
+      tradeOrder: order,
+    });
+  });
+
   // Sort all activities by date, newest first
   allActivities.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -164,6 +193,7 @@ export default function ActivitiesPage() {
     if (activityTypeFilter === "investment") return item.type === "investment";
     if (activityTypeFilter === "loan") return item.type === "loan" || item.type === "loan_settlement" || item.type === "custom_payment";
     if (activityTypeFilter === "installment_payment") return item.type === "installment_payment";
+    if (activityTypeFilter === "trade") return item.type === "trade";
     return true;
   });
 
@@ -231,11 +261,22 @@ export default function ActivitiesPage() {
                       setActivityTypeFilter("installment_payment");
                       setIsTypeFilterOpen(false);
                     }}
-                    className={`w-full text-right px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
+                    className={`w-full text-right px-4 py-2 text-sm hover:bg-muted transition-colors ${
                       activityTypeFilter === "installment_payment" ? "bg-muted font-semibold" : ""
                     }`}
                   >
                     پرداخت قسط
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActivityTypeFilter("trade");
+                      setIsTypeFilterOpen(false);
+                    }}
+                    className={`w-full text-right px-4 py-2 text-sm hover:bg-muted transition-colors rounded-b-lg ${
+                      activityTypeFilter === "trade" ? "bg-muted font-semibold" : ""
+                    }`}
+                  >
+                    تاریخچه معاملات
                   </button>
                 </div>
               )}
@@ -287,6 +328,10 @@ export default function ActivitiesPage() {
                 icon = DollarSign;
                 iconBg = "bg-orange-500/10";
                 iconColor = "text-orange-600";
+              } else if (item.type === "trade" && item.tradeOrder) {
+                icon = item.tradeOrder.type === "issue" ? TrendingUp : TrendingDown;
+                iconBg = item.tradeOrder.type === "issue" ? "bg-green-500/10" : "bg-red-500/10";
+                iconColor = item.tradeOrder.type === "issue" ? "text-green-600" : "text-red-600";
               }
 
               const IconComponent = icon;
@@ -441,6 +486,44 @@ export default function ActivitiesPage() {
                               {item.description}
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {item.type === "trade" && item.tradeOrder && (
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">صندوق</span>
+                              <span className="font-medium">{item.tradeOrder.fundName}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">نوع</span>
+                              <span className={item.tradeOrder.type === "issue" ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                                {item.tradeOrder.type === "issue" ? "صدور" : "ابطال"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">تعداد واحد</span>
+                              <span className="tabular-nums">{Number(item.tradeOrder.units).toFixed(1)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">مبلغ</span>
+                              <span className="font-semibold tabular-nums">{formatNumber(item.tradeOrder.amount)} تومان</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">وضعیت</span>
+                              <span className="text-xs font-medium">{ORDER_STATUS_LABEL[item.tradeOrder.status]}</span>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => router.push(`/app/assets/trade?view=${item.tradeOrder!.id}`)}
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            مشاهده فاکتور
+                          </Button>
                         </div>
                       )}
                     </CardContent>

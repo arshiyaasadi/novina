@@ -43,6 +43,11 @@ function InvestmentPageContent() {
   const [collateralAsset, setCollateralAsset] = useState<CollateralAsset | null>(null);
   const [collateralPercent, setCollateralPercent] = useState(0);
 
+  // Allocation of investment amount from each wallet
+  const [allocationUsdt, setAllocationUsdt] = useState<string>("");
+  const [allocationBtc, setAllocationBtc] = useState<string>("");
+  const [allocationError, setAllocationError] = useState<string>("");
+
   useEffect(() => {
     // Load portfolio from localStorage
     try {
@@ -111,9 +116,37 @@ function InvestmentPageContent() {
       return;
     }
 
+    setAllocationError("");
+
+    // If wallet balances are available, validate allocation before continuing
+    let allocUsdt = 0;
+    let allocBtc = 0;
+    if (walletBalances) {
+      allocUsdt = parseInt(allocationUsdt.replace(/,/g, ""), 10) || 0;
+      allocBtc = parseInt(allocationBtc.replace(/,/g, ""), 10) || 0;
+      const allocatedTotal = allocUsdt + allocBtc;
+      if (allocatedTotal !== numericAmount) {
+        setAllocationError(t("allocation.errors.totalMismatch"));
+        return;
+      }
+    }
+
     // Save investment data to localStorage
     try {
       localStorage.setItem("investmentAmount", numericAmount.toString());
+
+      // Persist allocation info only when wallets are being used
+      if (walletBalances) {
+        localStorage.setItem(
+          "investmentAllocation",
+          JSON.stringify({
+            fromUsdt: allocUsdt,
+            fromBtc: allocBtc,
+          })
+        );
+      } else {
+        localStorage.removeItem("investmentAllocation");
+      }
       if (financingType === "none") {
         localStorage.setItem("loanType", "none");
         localStorage.setItem("useLoan", "false");
@@ -149,6 +182,11 @@ function InvestmentPageContent() {
   const isValidAmount = numericAmount >= MIN_AMOUNT;
   const cashLoanAmount = financingType === "loan" ? Math.round((numericAmount * 70) / 100) : 0;
 
+  const numericAllocationUsdt = parseInt(allocationUsdt.replace(/,/g, ""), 10) || 0;
+  const numericAllocationBtc = parseInt(allocationBtc.replace(/,/g, ""), 10) || 0;
+  const allocatedTotal = numericAllocationUsdt + numericAllocationBtc;
+  const remainingToAllocate = Math.max(0, numericAmount - allocatedTotal);
+
   function collateralAssetValueToman(asset: CollateralAsset): number {
     if (!walletBalances) return 0;
     if (asset === "usdt") {
@@ -170,7 +208,12 @@ function InvestmentPageContent() {
     financingType === "none" ||
     (financingType === "loan" && loanPeriod !== null) ||
     (financingType === "collateral" && collateralAsset !== null && collateralPercent > 0 && collateralPercent <= COLLATERAL_MAX_PERCENT);
-  const canContinue = isValidAmount && isFinancingValid;
+  const shouldUseAllocation = !!walletBalances;
+  const canContinue =
+    isValidAmount &&
+    isFinancingValid &&
+    (!shouldUseAllocation ||
+      (allocationError === "" && numericAmount > 0 && allocatedTotal === numericAmount));
 
   if (portfolio.length === 0) {
     return (
@@ -260,184 +303,98 @@ function InvestmentPageContent() {
               )}
             </div>
 
-            {/* Financing type tabs */}
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex rounded-lg border bg-muted/30 p-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFinancingType("none");
-                    setLoanPeriod(null);
-                    setCollateralAsset(null);
-                    setCollateralPercent(0);
-                  }}
-                  className={cn(
-                    "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
-                    financingType === "none"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {t("financingType.noCollateral")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFinancingType("loan");
-                    setCollateralAsset(null);
-                    setCollateralPercent(0);
-                  }}
-                  className={cn(
-                    "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
-                    financingType === "loan"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {t("financingType.loan")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFinancingType("collateral");
-                    setLoanPeriod(null);
-                  }}
-                  className={cn(
-                    "flex-1 rounded-md py-2.5 text-sm font-medium transition-colors",
-                    financingType === "collateral"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {t("financingType.collateral")}
-                </button>
-              </div>
-
-              {/* Loan (cash) details */}
-              {financingType === "loan" && numericAmount > 0 && (
-                <div className="space-y-4 p-4 rounded-lg bg-muted/50 border">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{t("loanAmount")}</span>
-                      <span className="text-lg font-bold tabular-nums font-mono">
-                        {formatNumber(cashLoanAmount)} تومان
+            {/* Wallet balances & allocation */}
+            {walletBalances && (
+              <div className="space-y-3 pt-2 border-t">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{t("walletSummary.title")}</p>
+                  <div className="rounded-lg border bg-muted/40 divide-y">
+                    <div className="flex items-center justify-between p-3 text-sm">
+                      <span className="flex items-center gap-2">
+                        <CoinIcon symbol="USDT" size={18} />
+                        {t("walletSummary.usdt")}
+                      </span>
+                      <span className="font-mono text-sm">
+                        {formatNumber(walletBalances.usdt || "0")} {t("walletSummary.tomanUnit")}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 text-sm">
+                      <span className="flex items-center gap-2">
+                        <CoinIcon symbol="BTC" size={18} />
+                        {t("walletSummary.btc")}
+                      </span>
+                      <span className="font-mono text-sm">
+                        {formatNumber(walletBalances.btc || "0")} {t("walletSummary.tomanUnit")}
                       </span>
                     </div>
                   </div>
-                  <div className="space-y-2 pt-2 border-t">
-                    <p className="text-sm font-medium">{t("loanPeriodTitle")}</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {LOAN_OPTIONS.map((option) => (
-                        <button
-                          key={option.months}
-                          type="button"
-                          onClick={() => setLoanPeriod(option.months)}
-                          className={cn(
-                            "p-3 rounded-lg border text-sm font-medium transition-colors",
-                            loanPeriod === option.months
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background border-input hover:bg-muted"
-                          )}
-                        >
-                          <div className="text-center">
-                            <div className="font-semibold">{option.label}</div>
-                            <div className="text-xs opacity-90 mt-1">
-                              ({t("interest", { interest: option.interest })})
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">{t("allocation.title")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("allocation.description")}
+                  </p>
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">
+                        {t("allocation.usdtLabel")}
+                      </Label>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        dir="ltr"
+                        value={formatNumber(allocationUsdt)}
+                        onChange={(e) => setAllocationUsdt(normalizeNumericInput(e.target.value))}
+                        placeholder="0"
+                        className="text-left font-mono text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">
+                        {t("allocation.btcLabel")}
+                      </Label>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        dir="ltr"
+                        value={formatNumber(allocationBtc)}
+                        onChange={(e) => setAllocationBtc(normalizeNumericInput(e.target.value))}
+                        placeholder="0"
+                        className="text-left font-mono text-sm"
+                      />
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Collateral (crypto) details */}
-              {financingType === "collateral" && (
-                <div className="space-y-4 p-4 rounded-lg bg-muted/50 border">
-                  {!walletBalances || !hasWalletAssets ? (
-                    <p className="text-sm text-muted-foreground">
-                      {t("collateral.walletEmpty")}
-                    </p>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium">{t("collateral.selectAsset")}</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(Number(walletBalances.usdt) || 0) > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCollateralAsset("usdt");
-                              setCollateralPercent(0);
-                            }}
-                            className={cn(
-                              "flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors",
-                              collateralAsset === "usdt"
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-background border-input hover:bg-muted"
-                            )}
-                          >
-                            <CoinIcon symbol="USDT" size={20} />
-                            تتر
-                          </button>
-                        )}
-                        {(Number(walletBalances.btc) || 0) > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCollateralAsset("btc");
-                              setCollateralPercent(0);
-                            }}
-                            className={cn(
-                              "flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors",
-                              collateralAsset === "btc"
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-background border-input hover:bg-muted"
-                            )}
-                          >
-                            <CoinIcon symbol="BTC" size={20} />
-                            بیت‌کوین
-                          </button>
-                        )}
-                      </div>
-                      {collateralAsset && (
-                        <>
-                          <div className="space-y-2 pt-2 border-t">
-                            <Label className="text-sm">
-                              {t("collateral.loanPercent")} — {collateralPercent}%
-                            </Label>
-                            <input
-                              type="range"
-                              min={0}
-                              max={COLLATERAL_MAX_PERCENT}
-                              step={5}
-                              value={collateralPercent}
-                              onChange={(e) =>
-                                setCollateralPercent(parseInt(e.target.value, 10))
-                              }
-                              className="w-full h-2 rounded-full appearance-none bg-muted accent-primary"
-                            />
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">{t("collateral.loanAmountFromCollateral")}</span>
-                            <span className="font-bold tabular-nums">
-                              {formatNumber(collateralLoanAmount)} تومان
-                            </span>
-                          </div>
-                          <p className="text-xs font-medium">{t("collateral.periodOneYear")}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {t("collateral.repaymentLumpSum")}
-                          </p>
-                          <p className="text-xs text-amber-600 dark:text-amber-500">
-                            {t("collateral.freezeWarning")}
-                          </p>
-                        </>
-                      )}
-                    </>
+                  <div className="flex items-center justify-between text-xs mt-1">
+                    <span className="text-muted-foreground">{t("allocation.remainingLabel")}</span>
+                    <span className="font-mono">
+                      {formatNumber(remainingToAllocate)} {t("walletSummary.tomanUnit")}
+                    </span>
+                  </div>
+
+                  {allocationError && (
+                    <p className="text-xs text-destructive text-right">{allocationError}</p>
                   )}
                 </div>
-              )}
-            </div>
+
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    disabled={remainingToAllocate <= 0}
+                    onClick={() => {
+                      // Placeholder: in real flow, navigate to wallet deposit or open top-up modal
+                      // Here we simply simulate that user will top up the missing amount.
+                      window.location.href = "/app/wallet/deposit";
+                    }}
+                  >
+                    {t("allocation.topupButton")}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Continue Button */}
             <Button

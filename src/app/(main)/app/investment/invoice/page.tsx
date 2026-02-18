@@ -4,11 +4,18 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, Edit, ChevronDown, ChevronUp, Calendar, Clock, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Check, Edit, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { PortfolioItem } from "@/shared/components/portfolio/portfolio-pie-chart";
 import { CoinIcon } from "@/shared/components/coin-icon";
-import { cn } from "@/shared/lib/utils";
+import { normalizeNumericInput } from "@/shared/lib/number-utils";
+import { getWalletState } from "../../wallet/lib/wallet-storage";
+import { useMainWalletStore } from "../../wallet/store/main-wallet-store";
+import { appendMainWalletJournalEntry } from "../../wallet/lib/main-wallet-storage";
+import { handlerBank, maskPanHandler } from "@/shared/lib/bank-card";
+import Image from "next/image";
 
 type LoanPeriod = 3 | 6 | 9;
 type LoanType = "none" | "cash" | "collateral";
@@ -34,6 +41,40 @@ export default function InvoicePage() {
   const [isInstallmentsOpen, setIsInstallmentsOpen] = useState(false);
   const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
   const [isAgreementAccepted, setIsAgreementAccepted] = useState(false);
+  const [invoiceExpiresAt] = useState(() => Date.now() + 2 * 60 * 1000);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [mainWalletCards, setMainWalletCards] = useState<string[]>([]);
+  const [selectedCardForDeposit, setSelectedCardForDeposit] = useState<string | null>(null);
+  const [depositAmountInput, setDepositAmountInput] = useState("");
+  const [depositAmountRial, setDepositAmountRial] = useState(0);
+  const [isProcessingDeposit, setIsProcessingDeposit] = useState(false);
+
+  const mainWalletBalance = useMainWalletStore((s) => s.mainWalletBalance);
+  const walletCreditsFromStore = useMainWalletStore((s) => s.walletCredits);
+  const setMainWalletBalance = useMainWalletStore((s) => s.setMainWalletBalance);
+  const setWalletCredits = useMainWalletStore((s) => s.setWalletCredits);
+
+  // Wallet balances and allocation on invoice
+  const [walletBalances, setWalletBalances] = useState<{ usdt: string; btc: string } | null>(null);
+  const [allocationUsdt, setAllocationUsdt] = useState<string>("");
+  const [allocationBtc, setAllocationBtc] = useState<string>("");
+
+  useEffect(() => {
+    useMainWalletStore.getState().hydrate();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("mainWalletCards");
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) setMainWalletCards(arr);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -46,6 +87,7 @@ export default function InvoicePage() {
       const savedLoanInterest = localStorage.getItem("loanInterest");
       const savedCollateralAsset = localStorage.getItem("collateralAsset");
       const savedCollateralValueToman = localStorage.getItem("collateralValueToman");
+      const savedAllocation = localStorage.getItem("investmentAllocation");
 
       if (savedPortfolio) {
         const parsed = JSON.parse(savedPortfolio);
@@ -70,6 +112,23 @@ export default function InvoicePage() {
           setCollateralValueToman(parseInt(savedCollateralValueToman, 10));
         }
       }
+
+      // Load wallet state
+      const state = getWalletState();
+      if (state.walletRegistered && state.walletBalances) {
+        setWalletBalances(state.walletBalances);
+      }
+
+      // Prefill allocation if it was set previously
+      if (savedAllocation) {
+        try {
+          const parsed = JSON.parse(savedAllocation) as { fromUsdt?: number; fromBtc?: number };
+          if (parsed.fromUsdt != null) setAllocationUsdt(parsed.fromUsdt.toString());
+          if (parsed.fromBtc != null) setAllocationBtc(parsed.fromBtc.toString());
+        } catch {
+          // ignore parse errors
+        }
+      }
     } catch (error) {
       console.error("Failed to load data from localStorage:", error);
     }
@@ -86,6 +145,28 @@ export default function InvoicePage() {
   const totalAmount = portfolio.reduce((sum, item) => {
     return sum + calculateFundAmount(item.percentage);
   }, 0);
+
+  // How much should be paid from wallets (investment minus loan, if any)
+  const walletRequired = useLoan ? amount - loanAmount : amount;
+
+  const numericAllocationUsdt = parseInt(allocationUsdt.replace(/,/g, ""), 10) || 0;
+  const numericAllocationBtc = parseInt(allocationBtc.replace(/,/g, ""), 10) || 0;
+  const allocatedTotal = numericAllocationUsdt + numericAllocationBtc;
+  const remainingToAllocate = Math.max(0, walletRequired - allocatedTotal);
+
+  const usdtBalanceNum = walletBalances ? Number(walletBalances.usdt) || 0 : 0;
+  const btcBalanceNum = walletBalances ? Number(walletBalances.btc) || 0 : 0;
+  const allocationExceedsBalance =
+    numericAllocationUsdt > usdtBalanceNum || numericAllocationBtc > btcBalanceNum;
+
+  const allocationError =
+    walletBalances && walletRequired > 0
+      ? allocationExceedsBalance
+        ? "مبلغ انتخاب‌شده از یکی از کیف پول‌ها بیشتر از موجودی است."
+        : allocatedTotal !== walletRequired
+        ? "مجموع مبالغ انتخاب‌شده باید دقیقا برابر مبلغ پرداخت از کیف پول باشد."
+        : ""
+      : "";
 
   // Calculate loan details (cash: installments; collateral: lump sum 1 year)
   const calculateLoanDetails = () => {
@@ -147,6 +228,58 @@ export default function InvoicePage() {
   const installments = calculateInstallments();
 
   const handlePayment = () => {
+    if (walletRequired > 0 && !canPayFromMainWallet) return;
+
+    // کسر از کیف پول اصلی (اعتبار کریپتو+TWIN، وام، موجودی نقد)
+    if (walletRequired > 0 && (takeFromCrypto > 0 || takeFromTwin > 0 || takeFromLoan > 0 || takeFromMain > 0)) {
+      const creds = useMainWalletStore.getState().walletCredits;
+      const main = useMainWalletStore.getState().mainWalletBalance;
+      setWalletCredits({
+        loan: creds.loan - takeFromLoan,
+        funds: creds.funds,
+        crypto: creds.crypto - takeFromCrypto,
+        twin: creds.twin - takeFromTwin,
+      });
+      setMainWalletBalance(main - takeFromMain);
+      const ref = "سرمایه‌گذاری";
+      if (takeFromCrypto > 0) {
+        appendMainWalletJournalEntry({
+          type: "use_for_issue",
+          amount: takeFromCrypto,
+          source: "crypto",
+          description: "استفاده برای سرمایه‌گذاری",
+          reference: ref,
+        });
+      }
+      if (takeFromTwin > 0) {
+        appendMainWalletJournalEntry({
+          type: "use_for_issue",
+          amount: takeFromTwin,
+          source: "twin",
+          description: "استفاده برای سرمایه‌گذاری",
+          reference: ref,
+        });
+      }
+      if (takeFromLoan > 0) {
+        appendMainWalletJournalEntry({
+          type: "use_for_issue",
+          amount: takeFromLoan,
+          source: "loan",
+          description: "استفاده برای سرمایه‌گذاری",
+          reference: ref,
+        });
+      }
+      if (takeFromMain > 0) {
+        appendMainWalletJournalEntry({
+          type: "use_for_issue",
+          amount: takeFromMain,
+          source: "main",
+          description: "استفاده برای سرمایه‌گذاری",
+          reference: ref,
+        });
+      }
+    }
+
     try {
       const investmentData = {
         amount: amount,
@@ -158,6 +291,12 @@ export default function InvoicePage() {
         loanInterest: useLoan ? loanInterest : null,
         collateralAsset: loanType === "collateral" ? collateralAsset : null,
         collateralValueToman: loanType === "collateral" ? collateralValueToman : null,
+        allocation: walletBalances
+          ? {
+              fromUsdt: numericAllocationUsdt,
+              fromBtc: numericAllocationBtc,
+            }
+          : null,
         loanDetails: useLoan && loanDetails ? {
           interestAmount: loanDetails.interestAmount,
           totalPayable: loanDetails.totalPayable,
@@ -191,12 +330,60 @@ export default function InvoicePage() {
     router.push(receiptUrl);
   };
 
+  const shouldEnforceAllocation = !!walletBalances && walletRequired > 0;
+  const canPayBase = !useLoan || isAgreementAccepted;
+
+  // کیف پول اصلی: ترتیب کسر مثل assets/trade (کریپتو+TWIN، وام، موجودی نقد)
+  const credits = walletCreditsFromStore;
+  const mainBalance = mainWalletBalance;
+  const cryptoTwin = credits.crypto + credits.twin;
+  let takeFromCryptoTwin = Math.min(walletRequired, cryptoTwin);
+  let remaining = walletRequired - takeFromCryptoTwin;
+  const takeFromLoan = Math.min(remaining, credits.loan);
+  remaining -= takeFromLoan;
+  const takeFromMain = Math.min(remaining, mainBalance);
+  const takeFromCrypto = Math.min(takeFromCryptoTwin, credits.crypto);
+  const takeFromTwin = takeFromCryptoTwin - takeFromCrypto;
+  const totalCoveredByMainWallet = takeFromCryptoTwin + takeFromLoan + takeFromMain;
+  const canPayFromMainWallet = walletRequired <= 0 || totalCoveredByMainWallet >= walletRequired;
+
+  const mainWalletRows: { label: string; balance: number; take: number }[] = [
+    { label: "اعتبار کریپتو + TWIN", balance: cryptoTwin, take: takeFromCryptoTwin },
+    { label: "اعتبار وام", balance: credits.loan, take: takeFromLoan },
+    { label: "موجودی کیف پول", balance: mainBalance, take: takeFromMain },
+  ].filter((r) => r.balance > 0);
+
+  const isInvoiceExpired = Date.now() > invoiceExpiresAt;
+  const depositShortfall = walletRequired > 0 && !canPayFromMainWallet
+    ? walletRequired - totalCoveredByMainWallet
+    : 0;
+
+  useEffect(() => {
+    if (isDepositModalOpen && depositShortfall > 0) {
+      const rial = depositShortfall * 10;
+      setDepositAmountRial(rial);
+      setDepositAmountInput(formatNumber(rial));
+    }
+  }, [isDepositModalOpen, depositShortfall]);
+
+  const canPay =
+    canPayBase &&
+    !isInvoiceExpired &&
+    (walletRequired <= 0 || canPayFromMainWallet);
+
   return (
     <div className="flex flex-col p-4 space-y-6">
       <div className="w-full max-w-md mx-auto space-y-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="space-y-1.5">
             <CardTitle>فاکتور سرمایه‌گذاری</CardTitle>
+            {walletRequired > 0 && (
+              isInvoiceExpired ? (
+                <p className="text-xs text-muted-foreground">این فاکتور منقضی شده است.</p>
+              ) : (
+                <p className="text-xs text-amber-600 font-medium">این فاکتور ۲ دقیقه اعتبار دارد.</p>
+              )
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Total Amount */}
@@ -208,7 +395,7 @@ export default function InvoicePage() {
                     {formatNumber(amount)} تومان
                   </span>
                 </div>
-                
+
                 {/* Loan Information - Cash */}
                 {useLoan && loanDetails && loanType === "cash" && loanPeriod && (
                   <div className="pt-3 border-t border-primary/20 space-y-2">
@@ -315,8 +502,78 @@ export default function InvoicePage() {
                     </div>
                   </div>
                 )}
+
+                {/* توزیع سرمایه — زیر مجموعه مبلغ کل */}
+                <div className="space-y-2 pt-3 border-t border-primary/20">
+                  <h3 className="font-semibold text-sm">توزیع سرمایه:</h3>
+                  <div className="space-y-2">
+                    {portfolio.map((item) => {
+                      const fundAmount = calculateFundAmount(item.percentage);
+                      return (
+                        <div key={item.fundId} className="flex items-center justify-between py-1.5">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{item.fundName}</p>
+                            <p className="text-xs text-muted-foreground">{Math.round(item.percentage)}% از کل</p>
+                          </div>
+                          <div className="flex-shrink-0 text-left">
+                            <span className="text-sm font-bold tabular-nums">{formatNumber(fundAmount)}</span>
+                            <span className="text-xs text-muted-foreground mr-1">تومان</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* کیف پول اصلی */}
+            {walletRequired > 0 && (
+              <>
+                <div className="rounded-xl border border-border bg-muted/30 px-4 py-4 overflow-x-auto">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">کیف پول و موجودی‌ها</h3>
+                  {mainWalletRows.length > 0 ? (
+                    <table className="w-full min-w-[280px] text-sm border-collapse" dir="rtl">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-right py-2.5 px-3 font-medium text-muted-foreground">نوع اعتبار</th>
+                          <th className="text-left py-2.5 px-3 font-medium text-muted-foreground">موجودی</th>
+                          <th className="text-left py-2.5 px-3 font-medium text-muted-foreground">برداشت</th>
+                          <th className="text-left py-2.5 px-3 font-medium text-muted-foreground">مانده</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm">
+                        {mainWalletRows.map((r) => (
+                          <tr key={r.label} className="border-b border-border/60 last:border-0">
+                            <td className="py-2.5 px-3 text-foreground font-medium">{r.label}</td>
+                            <td className="py-2.5 px-3 tabular-nums text-foreground">{formatNumber(r.balance)}</td>
+                            <td className="py-2.5 px-3 tabular-nums text-foreground">{r.take > 0 ? formatNumber(r.take) : "—"}</td>
+                            <td className="py-2.5 px-3 tabular-nums font-semibold text-foreground">{formatNumber(r.balance - r.take)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-3">موجودی قابل استفاده‌ای ثبت نشده است.</p>
+                  )}
+                  {!canPayFromMainWallet && walletRequired > 0 && (
+                    <>
+                      <p className="text-sm text-destructive font-medium mt-3">
+                        مجموع موجودی‌ها برای این مبلغ کافی نیست.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full mt-3"
+                        onClick={() => setIsDepositModalOpen(true)}
+                      >
+                        شارژ کیف پول به مبلغ: {formatNumber(depositShortfall)} تومان
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Read Agreement Option */}
             {useLoan && loanDetails && loanAmount > 0 && (
@@ -349,48 +606,8 @@ export default function InvoicePage() {
               </div>
             )}
 
-            {/* Fund Breakdown - Accordion */}
-            <div className="space-y-3">
-              <button
-                onClick={() => setIsDistributionOpen(!isDistributionOpen)}
-                className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
-              >
-                <h3 className="font-semibold text-sm">توزیع سرمایه:</h3>
-                {isDistributionOpen ? (
-                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                )}
-              </button>
-              {isDistributionOpen && (
-                <div className="space-y-2 pt-2">
-                  {portfolio.map((item) => {
-                    const fundAmount = calculateFundAmount(item.percentage);
-                    return (
-                      <div
-                        key={item.fundId}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{item.fundName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {Math.round(item.percentage)}% از کل
-                          </p>
-                        </div>
-                        <div className="flex-shrink-0 mr-3 text-left">
-                          <span className="text-sm font-bold tabular-nums">
-                            {formatNumber(fundAmount)}
-                          </span>
-                          <span className="text-xs text-muted-foreground mr-1">تومان</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Installments List - Only show if loan is selected */}
-              {useLoan && loanDetails && installments.length > 0 && (
+            {/* سررسید اقساط — فقط در صورت وام */}
+            {useLoan && loanDetails && installments.length > 0 && (
                 <>
                   <button
                     onClick={() => setIsInstallmentsOpen(!isInstallmentsOpen)}
@@ -442,7 +659,6 @@ export default function InvoicePage() {
                   )}
                 </>
               )}
-            </div>
 
             {/* Total Check */}
             {totalAmount !== amount && (
@@ -459,7 +675,7 @@ export default function InvoicePage() {
                 onClick={handlePayment}
                 className="flex-1"
                 size="lg"
-                disabled={useLoan && !isAgreementAccepted}
+                disabled={!canPay}
               >
                 <Check className="w-4 h-4 ml-2" />
                 تأیید و پرداخت
@@ -476,7 +692,164 @@ export default function InvoicePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* بنر دریافت وام */}
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <button
+              type="button"
+              onClick={() => router.push("/app/credit/loan")}
+              className="block w-full text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg"
+            >
+              <img
+                src="/images/banner_1.png"
+                alt="وام تا ۷۰٪ مبلغ سرمایه‌گذاری شما"
+                className="w-full h-auto object-contain"
+              />
+            </button>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* مودال واریز به کیف پول */}
+      <Dialog open={isDepositModalOpen} onOpenChange={setIsDepositModalOpen}>
+        <DialogContent onClose={() => setIsDepositModalOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>واریز به کیف پول</DialogTitle>
+            <DialogDescription>
+              از بین کارت‌های بانکی خود یک کارت را انتخاب کنید و مبلغ را وارد کنید.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">انتخاب کارت بانکی</p>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {mainWalletCards.map((card) => {
+                  const selected = selectedCardForDeposit === card;
+                  const { bank, masked } = (() => {
+                    const pan = card.replace(/\D/g, "");
+                    return { bank: handlerBank(pan), masked: maskPanHandler(pan) };
+                  })();
+                  const logoSrc = `/images/bankLogos/${bank.logo}`;
+                  return (
+                    <button
+                      key={card}
+                      type="button"
+                      onClick={() => setSelectedCardForDeposit(card)}
+                      className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-sm transition-colors ${
+                        selected ? "border-primary bg-primary/10" : "border-muted bg-muted/40 hover:bg-muted/70"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="relative h-6 w-6 overflow-hidden rounded-full bg-muted">
+                          <Image
+                            src={logoSrc}
+                            alt={bank.bankName || "لوگوی بانک"}
+                            fill
+                            sizes="24px"
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className="text-[11px] font-medium">{bank.bankName || "کارت بانکی"}</span>
+                          <span dir="ltr" className="tabular-nums text-[11px] text-muted-foreground">
+                            {masked.slice(0, 4)} {masked.slice(4)}
+                          </span>
+                        </div>
+                      </div>
+                      {selected && <span className="text-xs text-primary font-medium">انتخاب شده</span>}
+                    </button>
+                  );
+                })}
+                {mainWalletCards.length === 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">هیچ کارتی ثبت نشده است.</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => router.push("/app/wallet")}
+                    >
+                      افزودن کارت بانکی از صفحه کیف پول
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="invoice-deposit-amount">
+                مبلغ واریز (ریال)
+              </label>
+              <input
+                id="invoice-deposit-amount"
+                type="tel"
+                inputMode="numeric"
+                dir="ltr"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="مثلاً ۱,۰۰۰,۰۰۰"
+                value={depositAmountInput}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+                  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
+                  let digits = "";
+                  for (const ch of raw) {
+                    if (ch >= "0" && ch <= "9") digits += ch;
+                    else {
+                      const pIndex = persianDigits.indexOf(ch);
+                      const aIndex = arabicDigits.indexOf(ch);
+                      if (pIndex !== -1) digits += String(pIndex);
+                      else if (aIndex !== -1) digits += String(aIndex);
+                    }
+                  }
+                  digits = digits.slice(0, 15);
+                  const amountRial = digits ? Number(digits) : 0;
+                  setDepositAmountRial(amountRial);
+                  setDepositAmountInput(digits ? formatNumber(amountRial) : "");
+                }}
+              />
+              {depositShortfall > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  مبلغ پیشنهادی: {formatNumber(depositShortfall)} تومان
+                </p>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">موجودی فعلی: {formatNumber(mainWalletBalance)} تومان</p>
+            <Button
+              type="button"
+              className="w-full"
+              disabled={
+                isProcessingDeposit ||
+                !selectedCardForDeposit ||
+                Math.floor(depositAmountRial / 10) <= 0
+              }
+              onClick={() => {
+                const depositToman = Math.floor(depositAmountRial / 10);
+                if (!selectedCardForDeposit || depositToman <= 0) return;
+                setIsProcessingDeposit(true);
+                setTimeout(() => {
+                  const next = Math.max(0, useMainWalletStore.getState().mainWalletBalance + depositToman);
+                  setMainWalletBalance(next);
+                  appendMainWalletJournalEntry({
+                    type: "deposit",
+                    amount: depositToman,
+                    source: "main",
+                    description: "واریز به کیف پول",
+                  });
+                  setIsProcessingDeposit(false);
+                  setIsDepositModalOpen(false);
+                  setDepositAmountInput("");
+                  setDepositAmountRial(0);
+                  setSelectedCardForDeposit(null);
+                }, 500);
+              }}
+            >
+              {isProcessingDeposit ? "در حال پردازش..." : "پرداخت"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Loan Agreement Modal */}
       {useLoan && loanDetails && (loanPeriod || loanType === "collateral") && (

@@ -21,6 +21,23 @@ export interface AuthResponse {
 }
 
 /**
+ * DTO کاربر لاگین‌شده (گلوبال)
+ * پس از ورود کاربر این فیلدها در استور و در صورت نیاز در localStorage پر می‌شوند.
+ */
+export interface LoggedInUserDto {
+  /** شماره همراه */
+  mobile: string;
+  /** کد ملی */
+  nationalId: string;
+  /** نام */
+  firstName: string;
+  /** نام خانوادگی */
+  lastName: string;
+  /** تاریخ تولد به صورت شمسی (مثلاً 1370/05/15) */
+  birthDate: string;
+}
+
+/**
  * Validation schema for login credentials
  */
 export const loginSchema = z.object({

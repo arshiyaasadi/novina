@@ -5,10 +5,15 @@ import { PortfolioPieChart, PortfolioItem } from "@/shared/components/portfolio/
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { normalizeNumericInput, convertToEnglishDigits } from "@/shared/lib/number-utils";
+import { useUserStore } from "@/shared/store/user-store";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   TrendingUp,
+  TrendingDown,
   Calendar,
   DollarSign,
   CreditCard,
@@ -32,6 +37,8 @@ import {
 import Image from "next/image";
 import { CoinIcon } from "@/shared/components/coin-icon";
 import { getWalletState, formatBtcDisplay, type WalletBalances } from "./wallet/lib/wallet-storage";
+import { appendMainWalletJournalEntry } from "./wallet/lib/main-wallet-storage";
+import { useMainWalletStore } from "./wallet/store/main-wallet-store";
 import { getAllFunds } from "@/app/risk-assessment/data/funds";
 import LogoLoop from "@/shared/components/logo-loop";
 import { handlerBank, maskPanHandler } from "@/shared/lib/bank-card";
@@ -47,6 +54,7 @@ import {
   Legend,
 } from "chart.js";
 import { Line, Bar } from "react-chartjs-2";
+import { ResponsivePie } from "@nivo/pie";
 
 ChartJS.register(
   CategoryScale,
@@ -139,6 +147,46 @@ const creditSliderItems = [
   },
 ] as const;
 
+/** فرمت تاریخ شمسی با اسلش: فقط رقم (فارسی/انگلیسی) → YYYY/MM/DD */
+function formatShamsiDateInput(raw: string): string {
+  const digits = convertToEnglishDigits(raw).replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}/${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}/${digits.slice(4, 6)}/${digits.slice(6, 8)}`;
+}
+
+function validateShamsiDate(value: string): boolean {
+  if (!/^\d{4}\/\d{2}\/\d{2}$/.test(value)) return false;
+  const [y, m, d] = value.split("/").map(Number);
+  if (y < 1300 || y > 1450) return false;
+  if (m < 1 || m > 12) return false;
+  if (d < 1 || d > 31) return false;
+  return true;
+}
+
+/** برای نمایش فیک بعد از احراز هویت: چند صندوق با درصدهای رندوم که جمعشان ۱۰۰ شود */
+function generateRandomPortfolioItems(): PortfolioItem[] {
+  const funds = getAllFunds();
+  const count = Math.min(2 + Math.floor(Math.random() * 3), funds.length); // 2 تا 4 صندوق
+  const indices: number[] = [];
+  while (indices.length < count) {
+    const i = Math.floor(Math.random() * funds.length);
+    if (!indices.includes(i)) indices.push(i);
+  }
+  const selected = indices.map((i) => funds[i]);
+  const rawPercentages = selected.map(() => Math.random() * 60 + 15);
+  const sum = rawPercentages.reduce((a, b) => a + b, 0);
+  const percentages = rawPercentages.map((p) => Math.round((p / sum) * 100));
+  const fix = 100 - percentages.reduce((a, b) => a + b, 0);
+  if (fix !== 0) percentages[0] += fix;
+  return selected.map((fund, i) => ({
+    fundId: fund.id,
+    fundName: fund.name,
+    percentage: Math.max(0, percentages[i]),
+    category: fund.category,
+  }));
+}
+
 export default function AppPage() {
   const router = useRouter();
   const tWallet = useTranslations("app.wallet");
@@ -146,6 +194,7 @@ export default function AppPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [latestInvestment, setLatestInvestment] = useState<InvestmentData | null>(null);
   const [expandedFunds, setExpandedFunds] = useState<Set<number>>(new Set());
+  const [includeInvestableInChart, setIncludeInvestableInChart] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isPortfolioComparisonModalOpen, setIsPortfolioComparisonModalOpen] = useState(false);
   const [priceChartPeriod, setPriceChartPeriod] = useState<"1d" | "1w" | "1m">("1d");
@@ -157,7 +206,9 @@ export default function AppPage() {
   const [isCardsModalOpen, setIsCardsModalOpen] = useState(false);
   const [mainWalletCards, setMainWalletCards] = useState<string[]>([]);
   const [newCardNumber, setNewCardNumber] = useState("");
-  const [mainWalletBalance, setMainWalletBalance] = useState<number>(0); // موجودی کیف پول اصلی (تومان)
+  const mainWalletBalance = useMainWalletStore((s) => s.mainWalletBalance);
+  const setMainWalletBalance = useMainWalletStore((s) => s.setMainWalletBalance);
+  const walletCredits = useMainWalletStore((s) => s.walletCredits);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [selectedCardForDeposit, setSelectedCardForDeposit] = useState<string | null>(null);
@@ -171,13 +222,15 @@ export default function AppPage() {
   const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
   const [walletInlineMessage, setWalletInlineMessage] = useState<string | null>(null);
   const [isWalletDetailsOpen, setIsWalletDetailsOpen] = useState(false);
-  const [walletCredits, setWalletCredits] = useState({
-    loan: 0,
-    funds: 0,
-    crypto: 0,
-    twin: 0,
-  });
+  const [isMainWalletHelpOpen, setIsMainWalletHelpOpen] = useState(false);
   const [activeCreditSlide, setActiveCreditSlide] = useState(0);
+  const [isCompleteProfileModalOpen, setIsCompleteProfileModalOpen] = useState(false);
+  const [completeProfileNationalId, setCompleteProfileNationalId] = useState("");
+  const [completeProfileBirthDate, setCompleteProfileBirthDate] = useState("");
+  const [completeProfileSuccess, setCompleteProfileSuccess] = useState(false);
+  const [completeProfileError, setCompleteProfileError] = useState<string | null>(null);
+  const user = useUserStore((s) => s.user);
+  const setUser = useUserStore((s) => s.setUser);
 
   useEffect(() => {
     // Load portfolio and latest investment from localStorage
@@ -212,35 +265,9 @@ export default function AppPage() {
           }
         }
 
-        // Load main wallet balance (تومان)
-        const storedBalance = localStorage.getItem("mainWalletBalanceToman");
-        if (storedBalance != null) {
-          const parsedBalance = Number(storedBalance);
-          if (!Number.isNaN(parsedBalance) && parsedBalance >= 0) {
-            setMainWalletBalance(Math.floor(parsedBalance));
-          }
-        }
-
-        const storedCredits = localStorage.getItem("walletCredits");
-        if (storedCredits) {
-          try {
-            const parsedCredits = JSON.parse(storedCredits);
-            if (
-              parsedCredits &&
-              typeof parsedCredits === "object" &&
-              ["loan", "funds", "crypto", "twin"].every((k) => typeof parsedCredits[k] === "number")
-            ) {
-              setWalletCredits({
-                loan: parsedCredits.loan,
-                funds: parsedCredits.funds,
-                crypto: parsedCredits.crypto,
-                twin: parsedCredits.twin,
-              });
-            }
-          } catch {
-            // ignore
-          }
-        }
+        // Hydrate main wallet store from localStorage
+        useMainWalletStore.getState().hydrate();
+        useUserStore.getState().hydrate();
       }
     } catch (error) {
       console.error("Failed to load data from localStorage:", error);
@@ -259,6 +286,13 @@ export default function AppPage() {
       }
     }
   }, []);
+
+  // اگر فقط یک کارت بانکی داریم و مودال واریز باز است، همان کارت را خودکار انتخاب کن
+  useEffect(() => {
+    if (isDepositModalOpen && !selectedCardForDeposit && mainWalletCards.length === 1) {
+      setSelectedCardForDeposit(mainWalletCards[0] || null);
+    }
+  }, [isDepositModalOpen, selectedCardForDeposit, mainWalletCards]);
 
   useEffect(() => {
     if (creditSliderItems.length <= 1) return;
@@ -766,13 +800,22 @@ export default function AppPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   ارزش کل دارایی کیف پول
                 </CardTitle>
-                <button
-                  type="button"
-                  className="text-[11px] font-medium text-primary hover:underline"
-                  onClick={() => setIsWalletDetailsOpen((prev) => !prev)}
-                >
-                  {isWalletDetailsOpen ? "بستن جزئیات" : "نمایش جزئیات"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="text-[11px] font-medium text-muted-foreground hover:text-primary hover:underline"
+                    onClick={() => router.push("/app/activities")}
+                  >
+                    تراکنش‌ها
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[11px] font-medium text-primary hover:underline"
+                    onClick={() => setIsWalletDetailsOpen((prev) => !prev)}
+                  >
+                    {isWalletDetailsOpen ? "بستن جزئیات" : "نمایش جزئیات"}
+                  </button>
+                </div>
               </div>
               <div className="mt-3 flex items-center justify-between gap-2">
                 <p className="text-2xl font-bold tabular-nums">
@@ -913,6 +956,24 @@ export default function AppPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* راهنمای کیف پول کلی */}
+          <Dialog open={isMainWalletHelpOpen} onOpenChange={setIsMainWalletHelpOpen}>
+            <DialogContent onClose={() => setIsMainWalletHelpOpen(false)}>
+              <DialogHeader>
+                <DialogTitle>راهنمای کیف پول کلی</DialogTitle>
+                <DialogDescription>
+                  ارزش کل کیف پول از موجودی نقدی و مجموع اعتبارها تشکیل می‌شود و همهٔ این منابع برای سرمایه‌گذاری (صدور واحد صندوق) قابل استفاده هستند.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2 text-sm text-muted-foreground">
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">منابع</h4>
+                  <p>موجودی کیف پول، اعتبار وام، اعتبار اوراق صندوق، اعتبار کریپتو و اعتبار TWIN. هر تغییری (واریز، برداشت، اعتبار، استفاده برای صدور) در جرنیش کیف پول ثبت می‌شود.</p>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Main Wallet Cards Modal – فقط برای حالت پورتفوی خالی نیز رندر شود */}
           <Dialog open={isCardsModalOpen} onOpenChange={setIsCardsModalOpen}>
@@ -1179,19 +1240,13 @@ export default function AppPage() {
                     if (!selectedCardForDeposit || depositToman <= 0) return;
                     setIsProcessingDeposit(true);
                     setTimeout(() => {
-                      setMainWalletBalance((prev) => {
-                        const next = Math.max(0, prev + depositToman);
-                        try {
-                          if (typeof window !== "undefined") {
-                            localStorage.setItem(
-                              "mainWalletBalanceToman",
-                              String(next)
-                            );
-                          }
-                        } catch {
-                          // ignore
-                        }
-                        return next;
+                      const next = Math.max(0, useMainWalletStore.getState().mainWalletBalance + depositToman);
+                      setMainWalletBalance(next);
+                      appendMainWalletJournalEntry({
+                        type: "deposit",
+                        amount: depositToman,
+                        source: "main",
+                        description: "واریز به کیف پول",
                       });
                       setIsProcessingDeposit(false);
                       setIsDepositModalOpen(false);
@@ -1362,19 +1417,13 @@ export default function AppPage() {
                     }
                     setIsProcessingWithdraw(true);
                     setTimeout(() => {
-                      setMainWalletBalance((prev) => {
-                        const next = Math.max(0, prev - withdrawAmountToman);
-                        try {
-                          if (typeof window !== "undefined") {
-                            localStorage.setItem(
-                              "mainWalletBalanceToman",
-                              String(next)
-                            );
-                          }
-                        } catch {
-                          // ignore
-                        }
-                        return next;
+                      const next = Math.max(0, useMainWalletStore.getState().mainWalletBalance - withdrawAmountToman);
+                      setMainWalletBalance(next);
+                      appendMainWalletJournalEntry({
+                        type: "withdraw",
+                        amount: withdrawAmountToman,
+                        source: "main",
+                        description: "برداشت از کیف پول",
                       });
                       setIsProcessingWithdraw(false);
                       setIsWithdrawModalOpen(false);
@@ -1390,22 +1439,186 @@ export default function AppPage() {
             </DialogContent>
           </Dialog>
 
-          <Card>
-            <CardContent className="p-6 text-center space-y-4">
-              <TrendingUp className="w-12 h-12 mx-auto text-muted-foreground" />
-              <h2 className="text-xl font-bold">پورتفوی شما خالی است</h2>
-              <p className="text-muted-foreground">
-                برای شروع سرمایه‌گذاری، ابتدا ارزیابی ریسک را انجام دهید
-              </p>
-              <Button
-                onClick={() => router.push("/risk-assessment")}
-                className="mt-4"
-                size="lg"
-              >
-                شروع ارزیابی ریسک
-              </Button>
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              {/* بخش اول: پورتفوی خالی */}
+              <div className="flex flex-col items-center text-center p-6 pb-5 bg-muted/20">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted/80 text-muted-foreground mb-3">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <h2 className="text-base font-semibold text-foreground mb-1">پورتفوی شما خالی است</h2>
+                <p className="text-sm text-muted-foreground max-w-[85%] leading-relaxed mb-4">
+                  برای شروع سرمایه‌گذاری، ابتدا ارزیابی ریسک را انجام دهید
+                </p>
+                <Button
+                  onClick={() => router.push("/risk-assessment")}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full px-5"
+                >
+                  شروع ارزیابی ریسک
+                </Button>
+              </div>
+
+              <div className="h-px bg-border shrink-0" aria-hidden />
+
+              {/* بخش دوم: اتصال حساب */}
+              <div className="flex flex-col items-center text-center p-6 pt-5">
+                <h3 className="text-sm font-semibold text-foreground mb-2">اتصال حساب</h3>
+                <p className="text-sm text-muted-foreground text-right leading-relaxed max-w-[90%] mb-4">
+                  اگر داخل nibmarket.com حساب دارید پروفایل خودتون رو کامل کنید تا دارایی‌های شما نمایش داده بشه.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="rounded-full px-5 w-full sm:w-auto min-w-[140px]"
+                  onClick={() => {
+                  setCompleteProfileSuccess(false);
+                  setCompleteProfileError(null);
+                  setIsCompleteProfileModalOpen(true);
+                }}
+                >
+                  تکمیل پروفایل
+                </Button>
+              </div>
             </CardContent>
           </Card>
+
+          {/* مودال تکمیل پروفایل (کد ملی + تاریخ تولد) */}
+          <Dialog
+            open={isCompleteProfileModalOpen}
+            onOpenChange={(open) => {
+              setIsCompleteProfileModalOpen(open);
+              if (!open) {
+                setCompleteProfileNationalId("");
+                setCompleteProfileBirthDate("");
+                setCompleteProfileSuccess(false);
+                setCompleteProfileError(null);
+              }
+            }}
+          >
+            <DialogContent onClose={() => setIsCompleteProfileModalOpen(false)} className="max-w-md space-y-6 p-6">
+              <DialogHeader className="space-y-2">
+                <DialogTitle>تکمیل پروفایل</DialogTitle>
+                <DialogDescription className="leading-relaxed">
+                  کد ملی و تاریخ تولد خود را وارد کنید تا استعلام انجام شود.
+                </DialogDescription>
+              </DialogHeader>
+
+              {completeProfileSuccess ? (
+                <p className="py-8 text-center text-lg font-medium text-primary">تایید شد</p>
+              ) : (
+                <>
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="complete-profile-national-id">کد ملی</Label>
+                      <Input
+                        id="complete-profile-national-id"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="۱۲۳۴۵۶۷۸۹۰"
+                        value={completeProfileNationalId}
+                        onChange={(e) =>
+                          setCompleteProfileNationalId(normalizeNumericInput(e.target.value).slice(0, 10))
+                        }
+                        dir="ltr"
+                        className="font-medium tabular-nums"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="complete-profile-birth-date">تاریخ تولد (شمسی)</Label>
+                      <Input
+                        id="complete-profile-birth-date"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="۱۳۷۰/۰۵/۱۵"
+                        value={completeProfileBirthDate}
+                        onChange={(e) =>
+                          setCompleteProfileBirthDate(formatShamsiDateInput(e.target.value))
+                        }
+                        dir="ltr"
+                        className="font-medium tabular-nums"
+                      />
+                    </div>
+                    {completeProfileError && (
+                      <p className="text-sm text-destructive">{completeProfileError}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 justify-start pt-2" dir="rtl">
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const nationalId = completeProfileNationalId.trim();
+                        const birthDate = completeProfileBirthDate.trim();
+                        if (nationalId.length !== 10) {
+                          setCompleteProfileError("کد ملی باید ۱۰ رقم باشد.");
+                          return;
+                        }
+                        if (!validateShamsiDate(birthDate)) {
+                          setCompleteProfileError("تاریخ تولد معتبر نیست (مثال: ۱۳۷۰/۰۵/۱۵).");
+                          return;
+                        }
+                        setCompleteProfileError(null);
+                        setUser({
+                          mobile: user?.mobile ?? "",
+                          nationalId,
+                          firstName: user?.firstName ?? "",
+                          lastName: user?.lastName ?? "",
+                          birthDate,
+                        });
+                        const fakePortfolio = generateRandomPortfolioItems();
+                        const fakeInvestmentAmount = Math.floor(5_000_000 + Math.random() * 45_000_000);
+                        const fakeLatestInvestment: InvestmentData = {
+                          amount: fakeInvestmentAmount,
+                          portfolio: fakePortfolio,
+                          useLoan: false,
+                          loanAmount: null,
+                          loanPeriod: null,
+                          loanInterest: null,
+                          loanDetails: null,
+                          investmentAmount: fakeInvestmentAmount,
+                          createdAt: new Date().toISOString(),
+                          status: "active",
+                        };
+                        setPortfolio(fakePortfolio);
+                        setLatestInvestment(fakeLatestInvestment);
+                        if (typeof window !== "undefined") {
+                          try {
+                            localStorage.setItem("portfolio", JSON.stringify(fakePortfolio));
+                            localStorage.setItem("latestInvestment", JSON.stringify(fakeLatestInvestment));
+                          } catch {
+                            // ignore
+                          }
+                        }
+                        setCompleteProfileSuccess(true);
+                        setTimeout(() => {
+                          setIsCompleteProfileModalOpen(false);
+                          setCompleteProfileNationalId("");
+                          setCompleteProfileBirthDate("");
+                          setCompleteProfileSuccess(false);
+                        }, 1500);
+                      }}
+                    >
+                      استعلام
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsCompleteProfileModalOpen(false);
+                        setCompleteProfileNationalId("");
+                        setCompleteProfileBirthDate("");
+                        setCompleteProfileError(null);
+                      }}
+                    >
+                      انصراف
+                    </Button>
+                  </div>
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* Credit teaser widget */}
           <Card className="mt-2">
@@ -1507,13 +1720,22 @@ export default function AppPage() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 ارزش کل دارایی کیف پول
               </CardTitle>
-              <button
-                type="button"
-                className="text-[11px] font-medium text-primary hover:underline"
-                onClick={() => setIsWalletDetailsOpen((prev) => !prev)}
-              >
-                {isWalletDetailsOpen ? "بستن جزئیات" : "نمایش جزئیات"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="text-[11px] font-medium text-muted-foreground hover:text-primary hover:underline"
+                  onClick={() => router.push("/app/activities")}
+                >
+                  تراکنش‌ها
+                </button>
+                <button
+                  type="button"
+                  className="text-[11px] font-medium text-primary hover:underline"
+                  onClick={() => setIsWalletDetailsOpen((prev) => !prev)}
+                >
+                  {isWalletDetailsOpen ? "بستن جزئیات" : "نمایش جزئیات"}
+                </button>
+              </div>
             </div>
             <div className="mt-3 flex items-center justify-between gap-2">
               <p className="text-2xl font-bold tabular-nums">
@@ -1689,8 +1911,29 @@ export default function AppPage() {
           </Card>
         )}
 
-        {/* Portfolio Holdings Card */}
-        {latestInvestment && latestInvestment.portfolio.length > 0 && (
+        {/* دارایی‌های من — با پورتفو (با یا بدون سرمایه‌گذاری) */}
+        {portfolio.length > 0 && (() => {
+          const hasInvestment = latestInvestment && latestInvestment.portfolio.length > 0;
+          if (hasInvestment) {
+            const totalNominalValue = latestInvestment!.portfolio.reduce((sum, item) => {
+              return sum + calculateFundValue(
+                item.fundId,
+                latestInvestment!.investmentAmount,
+                item.percentage
+              );
+            }, 0);
+            const totalProfit24h = latestInvestment!.portfolio.reduce((sum, item) => {
+              const currentValue = calculateFundValue(
+                item.fundId,
+                latestInvestment!.investmentAmount,
+                item.percentage
+              );
+              const price = getFundPrice(item.fundId);
+              if (!price) return sum;
+              const valueYesterday = currentValue / (1 + price.change24h / 100);
+              return sum + (currentValue - valueYesterday);
+            }, 0);
+            return (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -1704,96 +1947,263 @@ export default function AppPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {latestInvestment.portfolio.map((item) => {
-                const price = getFundPrice(item.fundId);
-                const currentValue = calculateFundValue(
-                  item.fundId,
-                  latestInvestment.investmentAmount,
-                  item.percentage
-                );
-                const fundInvestmentAmount = (latestInvestment.investmentAmount * item.percentage) / 100;
-                const profitLoss = calculateProfitLoss(fundInvestmentAmount, currentValue);
-                const isExpanded = expandedFunds.has(item.fundId);
-                const isProfit = profitLoss >= 0;
-
-                const fundPercentage = latestInvestment.investmentAmount > 0
-                  ? (fundInvestmentAmount / latestInvestment.investmentAmount) * 100
-                  : 0;
-
-                return (
-                  <div
-                    key={item.fundId}
-                    className="rounded-lg border bg-muted/50 overflow-hidden relative"
-                  >
-                    <button
-                      onClick={() => toggleFund(item.fundId)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-muted/70 transition-colors"
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm truncate">{item.fundName}</h3>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {price && (
-                          <div className={`flex items-center gap-1 text-xs font-semibold tabular-nums ${
-                            price.change24h >= 0 ? "text-green-600" : "text-red-600"
-                          }`}>
-                            {price.change24h >= 0 ? (
-                              <ArrowUp className="w-3 h-3" />
-                            ) : (
-                              <ArrowDown className="w-3 h-3" />
-                            )}
-                            <span>
-                              {price.change24h >= 0 ? "+" : ""}
-                              {price.change24h.toFixed(2)}%
+              <div className="grid grid-cols-2 gap-3 pb-3 border-b">
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">ارزش اسمی دارایی</p>
+                  <p className="text-base font-bold tabular-nums">{formatNumber(Math.round(totalNominalValue))} تومان</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground mb-1">آخرین سود دریافتی</p>
+                  <p className={`text-base font-bold tabular-nums ${totalProfit24h >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {totalProfit24h >= 0 ? "+" : ""}{formatNumber(Math.round(totalProfit24h))} تومان
+                  </p>
+                </div>
+              </div>
+              {/* چارت درصد دارایی‌ها — سهم هر دارایی بر اساس ارزش تخمینی نسبت به مجموع ارزش تخمینی */}
+              <div className="rounded-lg border bg-muted/30 overflow-hidden" dir="ltr">
+                <div className="h-[280px] w-full min-h-[280px]">
+                  {(() => {
+                    const fundValues = latestInvestment.portfolio.map((item) =>
+                      calculateFundValue(item.fundId, latestInvestment.investmentAmount, item.percentage)
+                    );
+                    const pieData = [
+                      ...latestInvestment.portfolio.map((item, i) => ({
+                        id: item.fundName,
+                        label: item.fundName,
+                        value: fundValues[i],
+                        color: fundColors[i % fundColors.length],
+                      })),
+                      ...(includeInvestableInChart && mainWalletBalance > 0
+                        ? [{ id: "قابل سرمایه‌گذاری", label: "قابل سرمایه‌گذاری", value: mainWalletBalance, color: "#64748b" }]
+                        : []),
+                    ];
+                    const totalValue = pieData.reduce((s, d) => s + Number(d.value), 0);
+                    const getPct = (v: number) => (totalValue > 0 ? Math.round((v / totalValue) * 100) : 0);
+                    return (
+                      <ResponsivePie
+                        data={pieData}
+                        margin={{ top: 24, right: 56, bottom: 24, left: 56 }}
+                        colors={pieData.map((d) => d.color)}
+                        theme={{ text: { fill: "hsl(var(--foreground))" }, tooltip: { container: { background: "hsl(var(--background))" } } }}
+                        innerRadius={0.45}
+                        padAngle={1}
+                        cornerRadius={2}
+                        activeOuterRadiusOffset={4}
+                        enableArcLabels
+                        arcLabelsSkipAngle={12}
+                        arcLabelsRadiusOffset={0.65}
+                        arcLabel={(d) => `${getPct(Number(d.value))}%`}
+                        arcLabelsTextColor={{ from: "color" }}
+                        arcLinkLabelsSkipAngle={12}
+                        arcLinkLabelsOffset={2}
+                        arcLinkLabelsDiagonalLength={12}
+                        arcLinkLabelsStraightLength={10}
+                        arcLinkLabelsTextColor={{ from: "color" }}
+                        arcLinkLabelsThickness={1}
+                        arcLinkLabelsColor={{ from: "color" }}
+                        valueFormat={(v) => `${formatNumber(Math.round(Number(v)))} تومان`}
+                        tooltip={({ datum }) => (
+                          <div className="rounded-lg border bg-background px-3 py-2 shadow-md text-right">
+                            <span className="font-medium">{datum.label}</span>
+                            <span className="text-muted-foreground mr-1"> — </span>
+                            <span className="tabular-nums font-semibold">
+                              {getPct(Number(datum.value))}% · {formatNumber(Math.round(Number(datum.value)))} تومان
                             </span>
                           </div>
                         )}
-                        {isExpanded ? (
-                          <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        )}
-                      </div>
-                    </button>
-                    {/* Progress Bar */}
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-border">
-                      <div
-                        className="h-full bg-primary transition-all duration-300"
-                        style={{ width: `${fundPercentage}%` }}
                       />
-                    </div>
-                    {isExpanded && (
-                      <div className="px-4 pb-4 space-y-2 border-t">
-                        <div className="space-y-1 pt-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">مبلغ سرمایه‌گذاری:</span>
-                            <span className="text-sm font-semibold tabular-nums">
-                              {formatNumber(Math.round(fundInvestmentAmount))} تومان
+                    );
+                  })()}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 justify-center px-3 py-3 border-t bg-muted/20 text-center" dir="rtl">
+                  {(() => {
+                    const fundValues = latestInvestment.portfolio.map((item) =>
+                      calculateFundValue(item.fundId, latestInvestment.investmentAmount, item.percentage)
+                    );
+                    const totalValue =
+                      fundValues.reduce((s, v) => s + v, 0) +
+                      (includeInvestableInChart && mainWalletBalance > 0 ? mainWalletBalance : 0);
+                    const getPct = (v: number) => (totalValue > 0 ? Math.round((v / totalValue) * 100) : 0);
+                    return (
+                      <>
+                        {latestInvestment.portfolio.map((item, i) => (
+                          <div key={item.fundId} className="flex items-center gap-1.5">
+                            <span
+                              className="shrink-0 w-2.5 h-2.5 rounded-full"
+                              style={{ backgroundColor: fundColors[i % fundColors.length] }}
+                            />
+                            <span className="text-xs text-foreground truncate max-w-[120px]" title={item.fundName}>
+                              {item.fundName}
+                            </span>
+                            <span className="text-xs font-semibold tabular-nums text-muted-foreground">{getPct(fundValues[i])}%</span>
+                          </div>
+                        ))}
+                        {includeInvestableInChart && mainWalletBalance > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="shrink-0 w-2.5 h-2.5 rounded-full bg-[#64748b]" />
+                            <span className="text-xs text-foreground">قابل سرمایه‌گذاری</span>
+                            <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+                              {getPct(mainWalletBalance)}%
                             </span>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">ارزش فعلی:</span>
-                            <span className="text-sm font-bold tabular-nums text-primary">
-                              {formatNumber(Math.round(currentValue))} تومان
-                            </span>
-                          </div>
-                          {price && (
-                            <div className="flex items-center justify-between pt-1 border-t">
-                              <span className="text-xs text-muted-foreground">قیمت هر واحد:</span>
-                              <span className="text-xs font-semibold tabular-nums">
-                                {formatNumber(price.currentPrice)} تومان
-                              </span>
-                            </div>
-                          )}
+                        )}
+                      </>
+                    );
+                  })()}
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground hover:text-foreground w-full justify-center mt-2">
+                    <input
+                      type="checkbox"
+                      checked={includeInvestableInChart}
+                      onChange={(e) => setIncludeInvestableInChart(e.target.checked)}
+                      className="rounded border-input"
+                    />
+                    <span>محاسبه دارایی قابل معامله</span>
+                  </label>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border/60 overflow-hidden overflow-x-auto">
+                <table className="w-full min-w-[400px] border-collapse text-right" dir="rtl">
+                  <thead>
+                    <tr className="border-b border-border/60 bg-muted/40">
+                      <th className="py-2.5 px-3 text-[11px] font-semibold text-muted-foreground w-[1%] whitespace-nowrap">نام دارایی</th>
+                      <th className="py-2.5 px-2 text-[11px] font-semibold text-muted-foreground tabular-nums whitespace-nowrap">موجودی کل</th>
+                      <th className="py-2.5 px-2 text-[11px] font-semibold text-muted-foreground tabular-nums whitespace-nowrap">قیمت واحد</th>
+                      <th className="py-2.5 px-2 text-[11px] font-semibold text-muted-foreground tabular-nums whitespace-nowrap">ارزش تخمینی</th>
+                      <th className="py-2.5 pl-2 pr-3 w-20" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                {latestInvestment.portfolio.map((item, i) => {
+                  const price = getFundPrice(item.fundId);
+                  const pricePerUnit = price?.currentPrice ?? 0;
+                  const fundInvestmentAmount = (latestInvestment.investmentAmount * item.percentage) / 100;
+                  const units = pricePerUnit > 0 ? fundInvestmentAmount / pricePerUnit : 0;
+                  const estimatedValue = units * pricePerUnit;
+                  const rowColor = fundColors[i % fundColors.length];
+
+                  return (
+                    <tr
+                      key={item.fundId}
+                      className="border-b border-border/40 last:border-b-0 bg-card hover:bg-muted/20 transition-colors"
+                    >
+                      <td className="py-3 px-3">
+                        <div className="flex items-center justify-end gap-1.5 min-w-0" dir="rtl">
+                          <span
+                            className="shrink-0 w-2.5 h-2.5 rounded-full order-2"
+                            style={{ backgroundColor: rowColor }}
+                          />
+                          <span className="text-sm font-medium text-foreground order-1 shrink-0" title={item.fundName}>
+                            {item.fundName.length > 12 ? `${item.fundName.slice(0, 12)}…` : item.fundName}
+                          </span>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      </td>
+                      <td className="py-3 px-2 text-xs tabular-nums text-muted-foreground whitespace-nowrap text-center">{units.toFixed(1)}</td>
+                      <td className="py-3 px-2 text-xs tabular-nums text-muted-foreground whitespace-nowrap text-center">
+                        {price ? formatNumber(price.currentPrice) : "—"}
+                      </td>
+                      <td className="py-3 px-2 text-sm tabular-nums font-semibold text-foreground whitespace-nowrap text-center">
+                        {formatNumber(Math.round(estimatedValue))}
+                      </td>
+                      <td className="py-3 pl-2 pr-3 align-middle">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-[11px] font-medium border-primary/50 text-primary hover:bg-primary/10 h-8 px-2.5"
+                          onClick={() => router.push(`/app/assets/trade?fundId=${item.fundId}`)}
+                        >
+                          معامله
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
-        )}
+          );
+          }
+          // پورتفو ساخته شده ولی هنوز سرمایه‌گذاری نشده
+          const displayItems = portfolio;
+          const pieData = displayItems.map((item, i) => ({
+            id: item.fundName,
+            label: item.fundName,
+            value: item.percentage,
+            color: fundColors[i % fundColors.length],
+          }));
+          return (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>دارایی‌های من</CardTitle>
+                  <button
+                    onClick={() => setIsInfoModalOpen(true)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <HelpCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="rounded-lg border bg-muted/30 overflow-hidden" dir="ltr">
+                  <div className="h-[200px] w-full min-h-[200px]">
+                    <ResponsivePie
+                      data={pieData}
+                      margin={{ top: 16, right: 48, bottom: 16, left: 48 }}
+                      colors={pieData.map((d) => d.color)}
+                      theme={{ text: { fill: "hsl(var(--foreground))" }, tooltip: { container: { background: "hsl(var(--background))" } } }}
+                      innerRadius={0.45}
+                      padAngle={1}
+                      cornerRadius={2}
+                      activeOuterRadiusOffset={4}
+                      enableArcLabels
+                      arcLabelsSkipAngle={12}
+                      arcLabelsRadiusOffset={0.65}
+                      arcLabel={(d) => `${d.value}%`}
+                      arcLabelsTextColor={{ from: "color" }}
+                      valueFormat={(v) => `${v}%`}
+                      tooltip={({ datum }) => (
+                        <div className="rounded-lg border bg-background px-3 py-2 shadow-md text-right">
+                          <span className="font-medium">{datum.label}</span>
+                          <span className="text-muted-foreground mr-1"> — </span>
+                          <span className="tabular-nums font-semibold">{Number(datum.value)}%</span>
+                        </div>
+                      )}
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 justify-center px-3 py-3 border-t bg-muted/20 text-center" dir="rtl">
+                    {displayItems.map((item, i) => (
+                      <div key={item.fundId} className="flex items-center gap-1.5">
+                        <span
+                          className="shrink-0 w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: fundColors[i % fundColors.length] }}
+                        />
+                        <span className="text-xs text-foreground truncate max-w-[120px]" title={item.fundName}>
+                          {item.fundName}
+                        </span>
+                        <span className="text-xs font-semibold tabular-nums text-muted-foreground">{item.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2 pt-2">
+                  <p className="text-sm text-muted-foreground text-center">
+                    با توجه به پورتفوی انتخابی، سرمایه‌گذاری خود را شروع کنید.
+                  </p>
+                  <Button
+                    onClick={() => router.push("/app/investment")}
+                    className="w-full"
+                    size="lg"
+                  >
+                    شروع سرمایه‌گذاری
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Credit teaser widget */}
         <Card className="mt-2">
@@ -1865,250 +2275,6 @@ export default function AppPage() {
           </CardContent>
         </Card>
 
-        {/* Price Changes Chart */}
-        {latestInvestment && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>تغییرات قیمت</CardTitle>
-                <div className={`flex items-center gap-1 text-sm font-semibold tabular-nums ${
-                  isPeriodPositive ? "text-green-600" : "text-red-600"
-                }`}>
-                  {isPeriodPositive ? (
-                    <ArrowUp className="w-4 h-4" />
-                  ) : (
-                    <ArrowDown className="w-4 h-4" />
-                  )}
-                  <span>
-                    {isPeriodPositive ? "+" : ""}
-                    {periodChange.toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Period Filters */}
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setPriceChartPeriod("1d")}
-                  variant={priceChartPeriod === "1d" ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                >
-                  ۱ روزه
-                </Button>
-                <Button
-                  onClick={() => setPriceChartPeriod("1w")}
-                  variant={priceChartPeriod === "1w" ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                >
-                  ۱ هفته
-                </Button>
-                <Button
-                  onClick={() => setPriceChartPeriod("1m")}
-                  variant={priceChartPeriod === "1m" ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                >
-                  ۱ ماه
-                </Button>
-              </div>
-
-              {/* Chart */}
-              <div className="relative h-48 w-full">
-                {chartData.length > 0 ? (
-                  <Line data={chartDataConfig} options={chartOptions} />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    <span className="text-sm">داده‌ای برای نمایش وجود ندارد</span>
-                  </div>
-                )}
-                
-                {/* Current value display */}
-                {chartData.length > 0 && (
-                  <div className="absolute bottom-2 right-2">
-                    <div className="bg-background/80 backdrop-blur-sm rounded px-2 py-1 border">
-                      <span className="text-xs font-semibold tabular-nums">
-                        {formatNumber(Math.round(chartData[chartData.length - 1].value))} تومان
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Portfolio Comparison Chart */}
-        {latestInvestment && latestInvestment.portfolio.length > 1 && latestInvestment.status === "completed" && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>مقایسه پورتفوی</CardTitle>
-                <button
-                  onClick={() => setIsPortfolioComparisonModalOpen(true)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <HelpCircle className="w-4 h-4" />
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                // Prepare data for comparison chart
-                const chartLabels = latestInvestment.portfolio.map(item => item.fundName);
-                const portfolioPercentages = latestInvestment.portfolio.map(item => item.percentage);
-                
-                // Calculate active percentages (fundPercentage)
-                const activePercentages = latestInvestment.portfolio.map((item) => {
-                  const fundInvestmentAmount = (latestInvestment.investmentAmount * item.percentage) / 100;
-                  return latestInvestment.investmentAmount > 0
-                    ? (fundInvestmentAmount / latestInvestment.investmentAmount) * 100
-                    : 0;
-                });
-
-                // Get colors for each fund
-                const backgroundColors = latestInvestment.portfolio.map((_, index) => 
-                  fundColors[index % fundColors.length]
-                );
-
-                const chartData = {
-                  labels: chartLabels,
-                  datasets: [
-                    {
-                      label: "درصد پورتفوی",
-                      data: portfolioPercentages,
-                      backgroundColor: backgroundColors.map(color => `${color}80`), // 50% opacity
-                      borderColor: backgroundColors,
-                      borderWidth: 1,
-                      barThickness: 8,
-                      maxBarThickness: 12,
-                      borderRadius: {
-                        topLeft: 4,
-                        topRight: 4,
-                        bottomLeft: 0,
-                        bottomRight: 0,
-                      },
-                    },
-                    {
-                      label: "درصد فعالی",
-                      data: activePercentages,
-                      backgroundColor: backgroundColors.map(color => `${color}CC`), // 80% opacity
-                      borderColor: backgroundColors,
-                      borderWidth: 1,
-                      barThickness: 8,
-                      maxBarThickness: 12,
-                      borderRadius: {
-                        topLeft: 4,
-                        topRight: 4,
-                        bottomLeft: 0,
-                        bottomRight: 0,
-                      },
-                    },
-                  ],
-                };
-
-                const chartOptions = {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      display: false,
-                    },
-                    tooltip: {
-                      rtl: true,
-                      callbacks: {
-                        label: function (context: any) {
-                          let label = context.dataset.label || "";
-                          if (label) {
-                            label += ": ";
-                          }
-                          if (context.parsed.y !== null) {
-                            label += context.parsed.y.toFixed(2) + "%";
-                          }
-                          return label;
-                        },
-                      },
-                    },
-                  },
-                  scales: {
-                    x: {
-                      stacked: false,
-                      grid: {
-                        display: false,
-                      },
-                      ticks: {
-                        font: {
-                          size: 11,
-                        },
-                      },
-                      categoryPercentage: 0.5,
-                      barPercentage: 0.6,
-                    },
-                    y: {
-                      stacked: false,
-                      beginAtZero: true,
-                      max: 100,
-                      ticks: {
-                        display: false,
-                      },
-                      grid: {
-                        display: false,
-                      },
-                    },
-                  },
-                };
-
-                // Calculate change percentage for each fund (activePercentage - portfolioPercentage)
-                const fundChanges = latestInvestment.portfolio.map((item, index) => {
-                  const portfolioPercentage = item.percentage;
-                  const activePercentage = activePercentages[index];
-                  const changePercentage = activePercentage - portfolioPercentage;
-                  return {
-                    fundName: item.fundName,
-                    changePercentage,
-                    color: backgroundColors[index],
-                  };
-                });
-
-                return (
-                  <>
-                    <div className="relative h-64 w-full">
-                      <Bar data={chartData} options={chartOptions} />
-                    </div>
-                    
-                    {/* Fund Changes Info */}
-                    <div className="mt-6 space-y-2 pt-4 border-t">
-                      {fundChanges.map((fund, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: fund.color }}
-                            />
-                            <span className="text-sm font-medium">{fund.fundName}</span>
-                          </div>
-                          <div className={`text-sm font-semibold tabular-nums ${
-                            fund.changePercentage > 0 ? "text-green-600" : 
-                            fund.changePercentage < 0 ? "text-red-600" : 
-                            "text-muted-foreground"
-                          }`}>
-                            {fund.changePercentage > 0 ? "+" : ""}
-                            {fund.changePercentage.toFixed(2)}%
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                );
-              })()}
-            </CardContent>
-          </Card>
-        )}
-
-        
-
         {/* Info Modal */}
         <Dialog open={isInfoModalOpen} onOpenChange={setIsInfoModalOpen}>
           <DialogContent onClose={() => setIsInfoModalOpen(false)}>
@@ -2136,10 +2302,7 @@ export default function AppPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Portfolio Pie Chart - Only show before investment */}
-        {(!latestInvestment || latestInvestment.status !== "completed") && (
-          <PortfolioPieChart items={portfolio} />
-        )}
+        {/* پورتفوی سرمایه‌گذاری جداگانه حذف شد — محتوا داخل کارت دارایی‌های من نمایش داده می‌شود */}
 
         {/* Main Wallet Cards Modal (افزودن کارت بانکی) */}
         <Dialog open={isCardsModalOpen} onOpenChange={setIsCardsModalOpen}>
@@ -2399,16 +2562,13 @@ export default function AppPage() {
                   if (!selectedCardForDeposit || depositToman <= 0) return;
                   setIsProcessingDeposit(true);
                   setTimeout(() => {
-                    setMainWalletBalance((prev) => {
-                      const next = Math.max(0, prev + depositToman);
-                      try {
-                        if (typeof window !== "undefined") {
-                          localStorage.setItem("mainWalletBalanceToman", String(next));
-                        }
-                      } catch {
-                        // ignore
-                      }
-                      return next;
+                    const next = Math.max(0, useMainWalletStore.getState().mainWalletBalance + depositToman);
+                    setMainWalletBalance(next);
+                    appendMainWalletJournalEntry({
+                      type: "deposit",
+                      amount: depositToman,
+                      source: "main",
+                      description: "واریز به کیف پول",
                     });
                     setIsProcessingDeposit(false);
                     setIsDepositModalOpen(false);
@@ -2558,16 +2718,13 @@ export default function AppPage() {
                   }
                   setIsProcessingWithdraw(true);
                   setTimeout(() => {
-                    setMainWalletBalance((prev) => {
-                      const next = Math.max(0, prev - withdrawAmountToman);
-                      try {
-                        if (typeof window !== "undefined") {
-                          localStorage.setItem("mainWalletBalanceToman", String(next));
-                        }
-                      } catch {
-                        // ignore
-                      }
-                      return next;
+                    const next = Math.max(0, useMainWalletStore.getState().mainWalletBalance - withdrawAmountToman);
+                    setMainWalletBalance(next);
+                    appendMainWalletJournalEntry({
+                      type: "withdraw",
+                      amount: withdrawAmountToman,
+                      source: "main",
+                      description: "برداشت از کیف پول",
                     });
                     setIsProcessingWithdraw(false);
                     setIsWithdrawModalOpen(false);

@@ -23,22 +23,23 @@ interface PhoneLoginProps {
 
 type AuthStep = "phoneEntry" | "otpEntry";
 
-// Validation function for Iranian phone numbers
-// Must be exactly 11 digits starting with 09
+/** شماره همراه ایران: فقط رقم، حداکثر ۱۱ کاراکتر، با 09 شروع شود */
+const IRAN_MOBILE_LENGTH = 11;
+const IRAN_MOBILE_PREFIX = "09";
+
 function validatePhoneNumber(phone: string): boolean {
-  // Remove all non-digit characters
   const digitsOnly = phone.replace(/\D/g, "");
-  
-  // Must be exactly 11 digits starting with 09
-  return digitsOnly.length === 11 && digitsOnly.startsWith("09");
+  return digitsOnly.length === IRAN_MOBILE_LENGTH && digitsOnly.startsWith(IRAN_MOBILE_PREFIX);
 }
 
-// Normalize phone number to standard format (09xxxxxxxxx)
 function normalizePhoneNumber(phone: string): string {
-  const digitsOnly = phone.replace(/\D/g, "");
-  
-  // Return as is if valid, otherwise return the digits
-  return digitsOnly;
+  return phone.replace(/\D/g, "");
+}
+
+/** ورودی را فقط به اعداد انگلیسی محدود می‌کند و حداکثر ۱۱ رقم (شماره ایران) */
+function formatPhoneInput(raw: string): string {
+  const digits = normalizeNumericInput(raw).slice(0, IRAN_MOBILE_LENGTH);
+  return digits;
 }
 
 export function PhoneLogin({ onContinue, onVerify }: PhoneLoginProps) {
@@ -210,13 +211,25 @@ export function PhoneLogin({ onContinue, onVerify }: PhoneLoginProps) {
                   id="phone"
                   type="tel"
                   inputMode="numeric"
+                  pattern="09[0-9]{9}"
+                  maxLength={IRAN_MOBILE_LENGTH}
                   placeholder={t("phonePlaceholder")}
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(normalizeNumericInput(e.target.value))}
+                  onChange={(e) => setPhoneNumber(formatPhoneInput(e.target.value))}
                   className="text-lg"
                   dir="ltr"
+                  autoComplete="tel"
                   autoFocus
                 />
+                {phoneNumber.length > 0 && !isValid && (
+                  <p className="text-xs text-destructive">
+                    {phoneNumber.length !== IRAN_MOBILE_LENGTH
+                      ? `شماره موبایل باید ${IRAN_MOBILE_LENGTH} رقم باشد.`
+                      : !phoneNumber.startsWith(IRAN_MOBILE_PREFIX)
+                        ? "شماره موبایل معتبر ایران با ۰۹ شروع می‌شود."
+                        : "شماره موبایل معتبر نیست."}
+                  </p>
+                )}
               </div>
             </form>
           </div>
