@@ -9,23 +9,23 @@ import { convertToEnglishDigits } from "@/shared/lib/number-utils";
 const NATIONAL_ID_LENGTH = 10;
 
 export interface CreditReportStepProps {
-  /** مقدار اولیه کد ملی */
+  /** Initial national ID value */
   value?: string;
-  /** پس از استعلام، کد ملی قفل شده نمایش داده می‌شود */
+  /** After inquiry, locked national ID is shown */
   lockedNationalId?: string;
-  /** رتبه اعتبار سنجی نمایشی (ماک) */
+  /** Display credit grade (mock) */
   creditGrade?: string;
-  /** با زدن «استعلام رتبه اعتبار سنجی» */
+  /** When user taps "Request credit score" */
   onInquiry: (nationalId: string) => void;
-  /** با زدن «ادامه» بعد از نمایش رتبه */
+  /** When user taps "Continue" after grade is shown */
   onContinue: () => void;
-  /** بازگشت به مرحله قبل */
+  /** Go back to previous step */
   onBack?: () => void;
   backLabel?: string;
 }
 
 /**
- * مرحله دریافت گزارش اعتبار سنجی: وارد کردن کد ملی → استعلام → نمایش گرید A+ → ادامه.
+ * Credit report step: enter national ID → inquiry → show grade A+ → continue.
  */
 export function CreditReportStep({
   value = "",

@@ -1,6 +1,6 @@
 /**
- * ذخیره و بازیابی پیش‌نویس درخواست وام و لیست درخواست‌های ثبت‌شده.
- * همه‌ی دیتای فلو وام در هر مرحله در localStorage پرسیست می‌شود.
+* Persist and load loan request draft and list of submitted requests.
+* All loan flow data is persisted to localStorage at each step.
  */
 
 export type LoanPeriod = 3 | 6 | 9 | 12;
@@ -13,7 +13,7 @@ export type LoanFlowDraft = {
   creditReportRequested: boolean;
   videoVerificationSuccess: boolean;
   isAgreementAccepted: boolean;
-  /** زمان آخرین به‌روزرسانی (ISO) برای نمایش در لیست */
+  /** Last updated time (ISO) for display in list */
   updatedAt: string;
 };
 

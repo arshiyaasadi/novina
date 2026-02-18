@@ -29,13 +29,13 @@ export default function AssetsPage() {
             ? tabParam
             : "funds";
 
-  // وقتی کاربر مستقیماً /app/assets را باز می‌کند (بدون tab)، به تب معامله برو
+  // When user opens /app/assets directly (no tab), go to trade tab
   useEffect(() => {
     if (tabParam === null) {
       router.replace("/app/assets/trade?tab=issue");
     }
   }, [tabParam, router]);
-  // تاریخچه معاملات به صفحه فعالیت‌ها منتقل شده
+  // Trade history moved to activities page
   useEffect(() => {
     if (tabParam === "history") {
       router.replace("/app/activities?type=trade");
@@ -81,7 +81,7 @@ export default function AssetsPage() {
   return (
     <div className="flex flex-col p-4 space-y-6">
       <div className="w-full max-w-md mx-auto space-y-4">
-        {/* تب‌های مینیمال — ترتیب ثابت با order تا با عوض کردن تب جابه‌جا نشوند */}
+        {/* Minimal tabs — fixed order so they do not reorder when switching */}
         <div className="flex flex-row rounded-xl border bg-muted/30 p-1.5" dir="rtl">
           <button
             type="button"

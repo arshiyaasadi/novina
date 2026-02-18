@@ -7,7 +7,7 @@
     "dev": "NEXT_IGNORE_INCORRECT_LOCKFILE=1 next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 999",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",

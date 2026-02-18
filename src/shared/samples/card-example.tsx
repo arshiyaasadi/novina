@@ -1,6 +1,6 @@
 /**
- * نمونه کامپوننت Card با Tailwind CSS
- * این فایل فقط به عنوان نمونه است و می‌توانید از آن کپی کنید
+ * Sample Card component with Tailwind CSS.
+ * This file is for reference only; copy as needed.
  */
 
 export function CardExample() {

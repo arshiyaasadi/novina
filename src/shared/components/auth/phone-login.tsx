@@ -23,7 +23,7 @@ interface PhoneLoginProps {
 
 type AuthStep = "phoneEntry" | "otpEntry";
 
-/** شماره همراه ایران: فقط رقم، حداکثر ۱۱ کاراکتر، با 09 شروع شود */
+/** Iranian mobile: digits only, max 11 chars, must start with 09 */
 const IRAN_MOBILE_LENGTH = 11;
 const IRAN_MOBILE_PREFIX = "09";
 
@@ -36,7 +36,7 @@ function normalizePhoneNumber(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
-/** ورودی را فقط به اعداد انگلیسی محدود می‌کند و حداکثر ۱۱ رقم (شماره ایران) */
+/** Restrict input to English digits only, max 11 (Iranian mobile) */
 function formatPhoneInput(raw: string): string {
   const digits = normalizeNumericInput(raw).slice(0, IRAN_MOBILE_LENGTH);
   return digits;
@@ -120,7 +120,7 @@ export function PhoneLogin({ onContinue, onVerify }: PhoneLoginProps) {
     setTimeRemaining(30);
     setCanResend(false);
     setOtp(["", "", "", ""]);
-    // TODO: Call API to resend OTP
+    // TODO(phase2): Call API to resend OTP
   };
 
   const handleVerify = () => {

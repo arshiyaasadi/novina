@@ -26,7 +26,7 @@ export default function ProfilePage() {
   };
 
   const handleNationalIdSubmit = (nationalId: string, username: string) => {
-    // TODO: Call API to verify national ID and get user info (mobile, birthDate, etc.)
+    // TODO(phase2): Call API to verify national ID and get user info (mobile, birthDate, etc.)
     // For now, update global user store with available fields; mobile and birthDate from API later
     setUser({
       mobile: user?.mobile ?? "",

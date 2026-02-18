@@ -117,7 +117,7 @@ export default function WalletDepositPage() {
         </Button>
       </div>
 
-      {/* انتخاب کوین */}
+      {/* Select coin */}
       <div className="space-y-2">
         <Label>کوین</Label>
         <div className="relative">
@@ -143,7 +143,7 @@ export default function WalletDepositPage() {
         </div>
       </div>
 
-      {/* انتخاب شبکه واریز */}
+      {/* Select deposit network */}
       <div className="space-y-2">
         <Label>شبکه واریز</Label>
         <div className="flex rounded-lg border bg-muted/30 p-1">

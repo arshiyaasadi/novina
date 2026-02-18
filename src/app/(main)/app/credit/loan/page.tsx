@@ -188,7 +188,7 @@ export default function LoanCreditPage() {
   const [videoVerificationSuccess, setVideoVerificationSuccess] = useState(false);
   const [loanRequestsGuideOpen, setLoanRequestsGuideOpen] = useState(false);
 
-  // بارگذاری اولیه مبلغ/دوره (وقتی پیش‌نویس نداریم یا برای اولین بار)
+  // Initial load of amount/period (when no draft or first time)
   useEffect(() => {
     try {
       const savedAmount = localStorage.getItem("creditLoanAmount");
@@ -212,7 +212,7 @@ export default function LoanCreditPage() {
     }
   }, []);
 
-  // پرسیست پیش‌نویس در هر مرحله وقتی کاربر داخل فلو است
+  // Persist draft on each step while user is in the flow
   useEffect(() => {
     if (!showFlow) return;
     setLoanFlowDraft({
@@ -236,7 +236,7 @@ export default function LoanCreditPage() {
     isAgreementAccepted,
   ]);
 
-  // اگر مبلغ کمتر از ۵۰ میلیون شد، دوره ۱۲ ماهه معتبر نیست
+  // If amount is less than 50M, 12-month period is not valid
   useEffect(() => {
     if (loanAmount < 50_000_000 && selectedPeriod === 12) {
       setSelectedPeriod(9);
@@ -330,7 +330,7 @@ export default function LoanCreditPage() {
         addLoanRequest(newRequest);
         clearLoanFlowDraft();
 
-        // به‌روزرسانی اعتبار وام در کیف پول و موجودی کیف پول
+        // Update loan credit in wallet and wallet balance
         const { walletCredits: credits, setWalletCredits: setCredits, mainWalletBalance: prevBalance, setMainWalletBalance: setBalance } = useMainWalletStore.getState();
         setCredits({ ...credits, loan: credits.loan + loanAmount });
         setBalance(Math.max(0, prevBalance + loanAmount));
@@ -365,7 +365,7 @@ export default function LoanCreditPage() {
           </Button>
         </div>
 
-        {/* بخش توضیحات فلو و دکمه شروع جرنی */}
+        {/* Flow description and start journey button */}
         {!showFlow && (
           <Card>
             <CardHeader>
@@ -439,7 +439,7 @@ export default function LoanCreditPage() {
           </Card>
         )}
 
-        {/* سکشن درخواست‌های وام (بدون کارت) */}
+        {/* Loan requests section (no card) */}
         {!showFlow && (
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
@@ -550,7 +550,7 @@ export default function LoanCreditPage() {
           </section>
         )}
 
-        {/* مودال راهنمای وضعیت درخواست‌های وام */}
+        {/* Loan request status guide modal */}
         <Dialog open={loanRequestsGuideOpen} onOpenChange={setLoanRequestsGuideOpen}>
           <DialogContent onClose={() => setLoanRequestsGuideOpen(false)}>
             <DialogHeader>
@@ -614,7 +614,7 @@ export default function LoanCreditPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-0">
-              {/* مبلغ وام */}
+              {/* Loan amount */}
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="loan-amount-input">
                   مبلغ وام (تومان)
@@ -656,7 +656,7 @@ export default function LoanCreditPage() {
                 )}
               </div>
 
-              {/* انتخاب مدت بازپرداخت */}
+              {/* Select repayment period */}
               <div className="space-y-3 pt-2 border-t">
                 <p className="text-sm font-medium">مدت بازپرداخت</p>
                 <div className="grid grid-cols-3 gap-2">
@@ -696,7 +696,7 @@ export default function LoanCreditPage() {
           </Card>
         )}
 
-        {/* فاکتور وام و برنامه اقساط */}
+        {/* Loan invoice and installment schedule */}
         {showFlow && step === 2 && canShowInvoice && loanDetails && selectedPeriod && (
           <Card>
             <CardHeader>
@@ -807,7 +807,7 @@ export default function LoanCreditPage() {
           </Card>
         )}
 
-        {/* مرحله ۳: دریافت گزارش اعتبار سنجی */}
+        {/* Step 3: Credit report */}
         {showFlow && step === 3 && (
           <Card>
             <CardHeader>
@@ -837,7 +837,7 @@ export default function LoanCreditPage() {
           </Card>
         )}
 
-        {/* مرحله ۴: احراز هویت ویدیویی — توضیحات و دکمه شروع؛ یا نمایش احراز موفق */}
+        {/* Step 4: Video verification — description and start button; or show success */}
         {showFlow && step === 4 && (
           <Card>
             <CardHeader>
@@ -892,7 +892,7 @@ export default function LoanCreditPage() {
           </Card>
         )}
 
-        {/* مرحله نهایی: نمایش قرارداد و امضای آن */}
+        {/* Final step: show contract and sign */}
         {showFlow && step === 5 && (
           <Card>
             <CardHeader>

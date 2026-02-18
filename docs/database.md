@@ -1,21 +1,21 @@
-# ساختار دیتابیس
+# Database structure
 
-## وضعیت فعلی
+## Current status
 
-> **⚠️ توجه**: در فاز ۱، Prisma Client غیرفعال است و از localStorage برای ذخیره داده‌های موقت استفاده می‌شود. کد Prisma در پروژه موجود است اما کامنت شده است.
+> **Note**: In Phase 1, Prisma Client is disabled and localStorage is used for temporary data. Prisma code exists in the project but is commented out.
 
-### استفاده از localStorage
+### localStorage usage
 
-در فاز ۱، داده‌های زیر در localStorage ذخیره می‌شوند:
-- پورتفوی کاربر (`portfolio`)
-- سرمایه‌گذاری‌های کاربر (`investments`, `latestInvestment`)
-- وضعیت پرداخت اقساط (`installment_*_paid`)
+In Phase 1, the following are stored in localStorage:
+- User portfolio (`portfolio`)
+- User investments (`investments`, `latestInvestment`)
+- Installment payment status (`installment_*_paid`)
 
-این رویکرد برای توسعه و تست مناسب است اما در فاز ۲ باید به دیتابیس واقعی منتقل شود.
+This is suitable for development and testing; Phase 2 will move to a real database.
 
-## Prisma Schema
+## Prisma schema
 
-Schema در `prisma/schema.prisma` تعریف شده است. در حال حاضر Prisma Client غیرفعال است اما schema برای استفاده در آینده آماده است.
+The schema is defined in `prisma/schema.prisma`. Prisma Client is currently disabled; the schema is ready for future use.
 
 ## Models
 
@@ -39,17 +39,16 @@ model User {
 ```
 
 **Fields:**
-- `id`: شناسه یکتا (CUID)
-- `email`: ایمیل کاربر (یکتا)
-- `name`: نام کاربر (اختیاری) - برای سازگاری با نسخه‌های قبلی
-- `firstName`: نام کاربر (اختیاری)
-- `lastName`: نام خانوادگی کاربر (اختیاری)
-- `password`: رمز عبور (باید hash شود)
-- `createdAt`: تاریخ ایجاد
-- `updatedAt`: تاریخ آخرین بروزرسانی
+- `id`: Unique ID (CUID)
+- `email`: User email (unique)
+- `name`: User name (optional) — for backward compatibility
+- `firstName`: First name (optional)
+- `lastName`: Last name (optional)
+- `password`: Password (must be hashed)
+- `createdAt`, `updatedAt`: Timestamps
 
 **Relations:**
-- `content`: محتواهای ایجاد شده توسط کاربر
+- `content`: Content created by the user
 
 ### Content
 
@@ -70,101 +69,73 @@ model Content {
 }
 ```
 
-**Fields:**
-- `id`: شناسه یکتا (CUID)
-- `title`: عنوان محتوا
-- `body`: متن محتوا (اختیاری)
-- `published`: وضعیت انتشار
-- `authorId`: شناسه نویسنده
-- `createdAt`: تاریخ ایجاد
-- `updatedAt`: تاریخ آخرین بروزرسانی
+**Fields:** `id`, `title`, `body`, `published`, `authorId`, `createdAt`, `updatedAt`  
+**Relations:** `author` (User)  
+**Indexes:** `authorId` for faster lookups by author
 
-**Relations:**
-- `author`: نویسنده محتوا (User)
+## Enabling Prisma (Phase 2)
 
-**Indexes:**
-- `authorId`: برای جستجوی سریع‌تر محتواهای یک نویسنده
+1. Uncomment `src/infrastructure/database/prisma.ts`
+2. Uncomment repository files (e.g. `src/domains/auth/repositories/user.repository.ts`)
+3. Run migrations: `yarn db:migrate`
 
-## فعال‌سازی Prisma (فاز ۲)
+## Migration guide
 
-برای فعال‌سازی Prisma در فاز ۲:
+> Prisma is currently disabled. The following is for Phase 2.
 
-1. فایل `src/infrastructure/database/prisma.ts` را uncomment کنید
-2. فایل‌های repository را uncomment کنید (مثلاً `src/domains/auth/repositories/user.repository.ts`)
-3. Migration را اجرا کنید:
-   ```bash
-   yarn db:migrate
-   ```
-
-## Migration Guide
-
-> **نکته**: در حال حاضر Prisma غیرفعال است. دستورات زیر برای استفاده در فاز ۲ آماده هستند.
-
-### ایجاد Migration
+### Create migration
 
 ```bash
 yarn db:migrate
 ```
 
-این دستور:
-1. Migration جدید ایجاد می‌کند
-2. Schema را به دیتابیس اعمال می‌کند
-3. Prisma Client را generate می‌کند
+This creates a new migration, applies the schema, and regenerates the Prisma Client.
 
-### Push Schema (Development)
-
-برای محیط توسعه می‌توانید مستقیماً schema را push کنید:
+### Push schema (development)
 
 ```bash
 yarn db:push
 ```
 
-**توجه**: این روش برای production توصیه نمی‌شود.
+Not recommended for production.
 
-### Reset Database
+### Reset database
 
 ```bash
-# حذف تمام داده‌ها و migrations
 yarn prisma migrate reset
 ```
 
-## Seed Data
+## Seed data
 
-(بعداً اضافه می‌شود)
-
-برای اضافه کردن seed data، فایل `prisma/seed.ts` ایجاد کنید.
+(To be added later.) Add `prisma/seed.ts` for seed data.
 
 ## Prisma Studio
-
-برای مشاهده و ویرایش داده‌ها:
 
 ```bash
 yarn db:studio
 ```
 
-این دستور Prisma Studio را در مرورگر باز می‌کند.
+Opens Prisma Studio in the browser.
 
-## Best Practices
+## Best practices
 
-1. **Migrations**: همیشه از migrations استفاده کنید
-2. **Indexes**: برای فیلدهای پرجستجو index اضافه کنید
-3. **Relations**: از cascade delete با احتیاط استفاده کنید
-4. **Types**: از Prisma generated types استفاده کنید
-5. **Validation**: اعتبارسنجی را در Service layer انجام دهید
+1. Use migrations
+2. Add indexes for frequently queried fields
+3. Use cascade delete with care
+4. Use Prisma-generated types
+5. Validate in the service layer
 
 ## Database URL
 
-در `.env.local`:
+In `.env.local`:
 
 ```env
 DATABASE_URL="file:./prisma/dev.db"
 ```
 
-برای SQLite، مسیر فایل دیتابیس را مشخص کنید. در حال حاضر این متغیر استفاده نمی‌شود چون Prisma غیرفعال است.
+For SQLite, set the database file path. This variable is not used while Prisma is disabled.
 
 ## Backup
-
-برای backup دیتابیس SQLite:
 
 ```bash
 cp dev.db dev.db.backup
@@ -172,24 +143,8 @@ cp dev.db dev.db.backup
 
 ## Troubleshooting
 
-### مشکل: Prisma Client not generated
+**Prisma Client not generated:** Run `yarn db:generate`
 
-```bash
-yarn db:generate
-```
+**Migration conflicts:** Run `yarn prisma migrate reset` then `yarn db:migrate`
 
-### مشکل: Migration conflicts
-
-```bash
-# Reset و migrate مجدد
-yarn prisma migrate reset
-yarn db:migrate
-```
-
-### مشکل: Schema out of sync
-
-```bash
-# Pull schema from database
-yarn prisma db pull
-```
-
+**Schema out of sync:** Run `yarn prisma db pull`

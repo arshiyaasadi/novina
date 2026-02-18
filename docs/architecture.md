@@ -1,116 +1,116 @@
-# معماری پروژه
+# Project architecture
 
-## مقدمه
+## Introduction
 
-این پروژه از معماری **MVC (Model-View-Controller)** و **Domain-based Structure** استفاده می‌کند. این ترکیب به ما کمک می‌کند تا کد را به صورت منطقی و قابل نگهداری سازماندهی کنیم.
+This project uses **MVC (Model-View-Controller)** and a **domain-based structure**. Together they keep the code organized and maintainable.
 
-## ساختار کلی
+## Overall structure
 
 ```
 src/
-├── app/                    # Next.js App Router (View Layer)
-├── domains/                # Domain-based Structure
+├── app/                    # Next.js App Router (View layer)
+├── domains/                # Domain-based structure
 │   ├── auth/
 │   ├── content/
-│   ├── risk/               # Risk Assessment Domain
+│   ├── risk/               # Risk assessment domain
 │   └── user/
-├── shared/                 # کدهای مشترک
-├── infrastructure/         # زیرساخت
-├── i18n/                   # بین‌المللی‌سازی
+├── shared/                 # Shared code
+├── infrastructure/         # Infrastructure
+├── i18n/                   # Internationalization
 └── types/                  # TypeScript global types
 ```
 
-## Domain-based Architecture
+## Domain-based architecture
 
-هر Domain شامل ساختار MVC است:
+Each domain follows an MVC-style layout:
 
 ### 1. Models (`models/`)
-- Domain entities و business objects
-- تبدیل داده‌های Prisma به Domain models
+- Domain entities and business objects
+- Map Prisma data to domain models
 
 ### 2. Repositories (`repositories/`)
 - Data access layer
-- تمام query های Prisma در اینجا قرار می‌گیرند
-- جداسازی منطق دیتابیس از business logic
+- All Prisma queries live here
+- Keeps database logic separate from business logic
 
 ### 3. Services (`services/`)
 - Business logic
-- اعتبارسنجی‌ها
-- قوانین کسب‌وکار
+- Validation
+- Business rules
 
 ### 4. Controllers (`controllers/`)
 - Route handlers
 - API endpoints
-- تبدیل request/response
+- Request/response mapping
 
 ### 5. Types (`types/`)
 - TypeScript interfaces
 - DTOs (Data Transfer Objects)
 
-## جریان داده
+## Data flow
 
-### جریان استاندارد (با دیتابیس)
+### Standard flow (with database)
 ```
 Request → Controller → Service → Repository → Database
                 ↓
          Response ← Controller
 ```
 
-### جریان Risk Assessment (با AI)
+### Risk assessment flow (with AI)
 ```
 Request → Controller → Service → AI API (GAPGPT)
                 ↓
          Response ← Controller
 ```
 
-> **نکته**: در فاز ۱، Risk Assessment از AI استفاده می‌کند و نیازی به Repository ندارد.
+> In Phase 1, risk assessment uses AI and does not use a repository.
 
-## Domain ها
+## Domains
 
-### Auth Domain
-- مدیریت احراز هویت
-- Login/Register
-- مدیریت session
-- ساختار: `controllers/`, `services/`, `repositories/`, `models/`, `types/`
-- **کاربر لاگین‌شده (گلوبال):** DTO با فیلدهای شماره همراه، کد ملی، نام، نام خانوادگی، تاریخ تولد (شمسی) در استور Zustand و در صورت نیاز در localStorage نگهداری می‌شود. جزئیات در [user-session.md](user-session.md).
+### Auth domain
+- Authentication
+- Login/register
+- Session handling
+- Layout: `controllers/`, `services/`, `repositories/`, `models/`, `types/`
+- **Logged-in user (global):** A single DTO (mobile, nationalId, firstName, lastName, birthDate in Shamsi) is kept in a Zustand store and optionally in localStorage. See [user-session.md](user-session.md).
 
-### Content Domain
-- مدیریت محتوا
-- CRUD operations
-- انتشار محتوا
-- ساختار: `controllers/`, `services/`, `repositories/`, `models/`, `types/`
+### Content domain
+- Content management
+- CRUD
+- Publishing
+- Layout: `controllers/`, `services/`, `repositories/`, `models/`, `types/`
 
-### Risk Domain
-- ارزیابی ریسک سرمایه‌گذاری
-- یکپارچه‌سازی با AI (GAPGPT) برای تحلیل پاسخ‌های کاربر
-- تعیین پروفایل ریسک: محافظه‌کار، متعادل، یا جسور
-- ساختار:
-  - `controllers/risk-assessment.controller.ts` - مدیریت درخواست‌های API
-  - `services/risk-assessment.service.ts` - منطق کسب‌وکار و ارتباط با AI
-  - `types/index.ts` - TypeScript interfaces و DTOs
+### Risk domain
+- Investment risk assessment
+- AI integration (GAPGPT) to analyze user answers
+- Risk profile: conservative, balanced, or aggressive
+- Layout:
+  - `controllers/risk-assessment.controller.ts` — API request handling
+  - `services/risk-assessment.service.ts` — business logic and AI calls
+  - `types/index.ts` — TypeScript interfaces and DTOs
 
-**نکته**: Risk Domain در حال حاضر از Repository استفاده نمی‌کند چون مستقیماً با AI API ارتباط برقرار می‌کند.
+Risk domain does not use a repository; it talks to the AI API directly.
 
-### User Domain
-- مدیریت اطلاعات کاربر
+### User domain
+- User information
 - Profile management
-- ساختار: `controllers/`, `services/`, `repositories/`, `models/`, `types/`
+- Layout: `controllers/`, `services/`, `repositories/`, `models/`, `types/`
 
-## قوانین توسعه
+## Development rules
 
-1. **هر Domain مستقل است**: Domain ها نباید مستقیماً به یکدیگر وابسته باشند
-2. **Dependency Injection**: Services از Repositories استفاده می‌کنند
-3. **Single Responsibility**: هر کلاس یک مسئولیت دارد
-4. **Type Safety**: از TypeScript types استفاده کنید
-5. **Error Handling**: از logger برای ثبت خطاها استفاده کنید
+1. **Domains are independent**: Domains must not depend on each other directly.
+2. **Dependency injection**: Services use repositories.
+3. **Single responsibility**: Each class has one responsibility.
+4. **Type safety**: Use TypeScript types.
+5. **Error handling**: Use the logger for errors.
 
-## API Structure
+## API structure
 
-API Routes در `src/app/api/` قرار می‌گیرند و از Controllers استفاده می‌کنند.
+API routes live under `src/app/api/` and use controllers.
 
-## مثال‌ها
+## Examples
 
-### مثال ۱: Auth Domain (استاندارد)
+### Example 1: Auth domain (standard)
 
 ```typescript
 // Controller
@@ -128,7 +128,7 @@ const userRepository = new UserRepository();
 const user = await userRepository.findByEmail(email);
 ```
 
-### مثال ۲: Risk Domain (با AI)
+### Example 2: Risk domain (with AI)
 
 ```typescript
 // Controller
@@ -143,10 +143,9 @@ const result = await riskService.evaluateRisk({
   answers: [...]
 });
 
-// AI API Call (داخل Service)
+// AI API call (inside service)
 const response = await openaiClient.chat.completions.create({
   model: "gpt-model",
   messages: [...]
 });
 ```
-

@@ -1,45 +1,45 @@
 # Database Management Agent
 
-## Focus Areas
+## Focus areas
 
-این ایجنت برای مدیریت دیتابیس و Prisma استفاده می‌شود.
+This agent is used for database and Prisma work.
 
 ## Responsibilities
 
-1. تعریف و به‌روزرسانی Prisma Schema
-2. ایجاد و مدیریت Migrations
-3. بهینه‌سازی Queries
-4. مدیریت Indexes
+1. Define and update the Prisma schema
+2. Create and manage migrations
+3. Optimize queries
+4. Manage indexes
 5. Seed data
 
 ## Guidelines
 
-### Schema Design
+### Schema design
 
-- Models را در `prisma/schema.prisma` تعریف کنید
-- از naming conventions مناسب استفاده کنید
-- Relations را به درستی تعریف کنید
+- Define models in `prisma/schema.prisma`
+- Use consistent naming
+- Define relations correctly
 
 ### Migrations
 
-- همیشه از migrations استفاده کنید
-- Migration names باید توصیفی باشند
-- قبل از migration، schema را بررسی کنید
+- Always use migrations
+- Use descriptive migration names
+- Review the schema before migrating
 
 ### Queries
 
-- Queries را در Repository layer قرار دهید
-- از Prisma generated types استفاده کنید
-- از select برای بهینه‌سازی استفاده کنید
+- Keep queries in the repository layer
+- Use Prisma-generated types
+- Use `select` to limit returned fields
 
 ### Indexes
 
-- برای فیلدهای پرجستجو index اضافه کنید
-- از composite indexes برای queries پیچیده استفاده کنید
+- Add indexes for frequently queried fields
+- Use composite indexes for complex queries
 
 ## Examples
 
-### تعریف Model
+### Model
 
 ```prisma
 model User {
@@ -55,13 +55,13 @@ model User {
 }
 ```
 
-### ایجاد Migration
+### Run migration
 
 ```bash
 yarn db:migrate
 ```
 
-### Query Optimization
+### Query optimization
 
 ```typescript
 // Bad: Select all fields
@@ -80,7 +80,7 @@ const user = await prisma.user.findUnique({
 });
 ```
 
-### استفاده از Repository
+### Using a repository
 
 ```typescript
 import { UserRepository } from "@/domains/auth/repositories/user.repository";
@@ -88,4 +88,3 @@ import { UserRepository } from "@/domains/auth/repositories/user.repository";
 const userRepository = new UserRepository();
 const user = await userRepository.findByEmail(email);
 ```
-

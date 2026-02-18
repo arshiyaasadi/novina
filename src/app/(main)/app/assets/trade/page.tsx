@@ -130,7 +130,7 @@ export default function AssetsTradePage() {
   const pricePerUnit = priceInfo?.currentPrice ?? 0;
   const selectedFund = selectedFundId ? funds.find((f) => f.id === Number(selectedFundId)) : null;
 
-  /** برای ابطال: تعداد واحد در دسترس کاربر برای این صندوق (از latestInvestment) */
+  /** For redeem: number of units available to the user for this fund (from latestInvestment) */
   const availableUnitsForRedeem =
     activeTab === "redeem" && selectedFundId && pricePerUnit > 0 && latestInvestment
       ? (() => {
@@ -211,7 +211,7 @@ export default function AssetsTradePage() {
 
   const amountNum = useCallback(() => normalizeAmountInput(amountRaw), [amountRaw]);
   const unitsNum = useCallback(() => parseFloat(unitsRaw) || 0, [unitsRaw]);
-  /** اسلایدر ابطال: درصد از واحد در دسترس (۰ تا ۱۰۰) */
+  /** Redeem slider: percentage of available units (0–100) */
   const redeemPercent = hasRedeemUnits
     ? Math.min(100, (unitsNum() / availableUnitsForRedeem) * 100)
     : 0;
@@ -337,7 +337,7 @@ export default function AssetsTradePage() {
   return (
     <div className="flex flex-col p-4 space-y-6">
       <div className="w-full max-w-md mx-auto space-y-4">
-        {/* نوار تب — در مرحله فاکتور نمایش داده نشود */}
+        {/* Tab bar — hidden on invoice step */}
         {!isInvoiceStep && (
         <div className="flex flex-row rounded-xl border bg-muted/30 p-1.5" dir="rtl">
           <button

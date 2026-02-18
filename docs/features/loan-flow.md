@@ -1,27 +1,27 @@
-# فرایند دریافت وام (اعتبار نقدی)
+# Loan (credit) flow
 
-این سند رفتار و ذخیره‌سازی فرایند دریافت وام را شرح می‌دهد.
+This document describes the behavior and persistence of the loan request flow.
 
-## مراحل فلو (۵ مرحله)
+## Flow steps (5 steps)
 
-| مرحله | عنوان | دیتای پرسیست‌شده |
-|-------|--------|-------------------|
-| ۱ | مبلغ وام و شرایط بازپرداخت | `loanAmount`, `selectedPeriod` |
-| ۲ | اقساط | (مشتق از مبلغ و دوره) |
-| ۳ | دریافت گزارش اعتبار سنجی | `videoVerificationNationalId`, `creditReportRequested` |
-| ۴ | احراز هویت ویدیویی | `videoVerificationSuccess` |
-| ۵ | دریافت وام و تایید قرارداد | `isAgreementAccepted` |
+| Step | Title                         | Persisted data                                      |
+|------|-------------------------------|-----------------------------------------------------|
+| 1    | Loan amount and repayment terms | `loanAmount`, `selectedPeriod`                    |
+| 2    | Installments                  | (derived from amount and period)                    |
+| 3    | Credit report                 | `videoVerificationNationalId`, `creditReportRequested` |
+| 4    | Video verification            | `videoVerificationSuccess`                         |
+| 5    | Receive loan and accept contract | `isAgreementAccepted`                           |
 
-همه‌ی این فیلدها به‌همراه `step` و `updatedAt` در هر تغییر در **پیش‌نویس** ذخیره می‌شوند.
+All of these fields, plus `step` and `updatedAt`, are saved to the **draft** on every change.
 
-## پرسیست (localStorage)
+## Persistence (localStorage)
 
-### کلیدها
+### Keys
 
-- **`loanFlowDraft`**: پیش‌نویس درخواست در حال تکمیل. هر بار که کاربر داخل فلو است و state عوض می‌شود، این شیء به‌روز می‌شود.
-- **`loanRequests`**: آرایه‌ی درخواست‌های ثبت‌شده (بعد از امضای قرارداد).
+- **`loanFlowDraft`**: Draft of the request in progress. Updated whenever the user is in the flow and state changes.
+- **`loanRequests`**: Array of submitted requests (after contract signing).
 
-### ساختار پیش‌نویس (`LoanFlowDraft`)
+### Draft structure (`LoanFlowDraft`)
 
 ```ts
 {
@@ -36,24 +36,24 @@
 }
 ```
 
-### زمان ذخیره و پاک‌سازی
+### When data is saved and cleared
 
-- **ذخیره:** هر بار که کاربر داخل فلو است (`showFlow === true`) و یکی از فیلدهای بالا یا `step` عوض شود، `loanFlowDraft` در localStorage نوشته می‌شود.
-- **پاک‌سازی:** بعد از «امضای قرارداد» (ثبت درخواست)، `loanFlowDraft` پاک می‌شود و درخواست جدید به `loanRequests` اضافه می‌شود.
+- **Save:** Whenever the user is in the flow (`showFlow === true`) and any of the above fields or `step` changes, `loanFlowDraft` is written to localStorage.
+- **Clear:** After “Sign contract” (submit request), `loanFlowDraft` is cleared and the new request is appended to `loanRequests`.
 
-## لیست «درخواست‌های وام»
+## Loan requests list
 
-- **پیش‌نویس:** اگر `loanFlowDraft` وجود داشته باشد، به‌صورت اولین آیتم با برچسب «در حال تکمیل – مرحله X از ۵» و مبلغ و تاریخ آخرین به‌روزرسانی نمایش داده می‌شود. با کلیک روی آن، فلو از همان مرحله و با همان دیتا باز می‌شود.
-- **درخواست‌های ثبت‌شده:** از `loanRequests` (localStorage) بارگذاری می‌شوند. اگر خالی باشد، برای نمایش دمو از `MOCK_LOAN_REQUESTS` استفاده می‌شود.
-- **دکمه «دریافت وام جدید»:** اگر پیش‌نویس وجود داشته باشد، با کلیک، همان پیش‌نویس بازیابی و فلو از مرحلهٔ ذخیره‌شده ادامه می‌یابد؛ در غیر این صورت فلو از مرحله ۱ با مبلغ/دورهٔ فعلی شروع می‌شود.
+- **Draft:** If `loanFlowDraft` exists, it appears as the first item with a label like “In progress – step X of 5” and the amount and last updated time. Clicking it reopens the flow at that step with the same data.
+- **Submitted requests:** Loaded from `loanRequests` (localStorage). If empty, `MOCK_LOAN_REQUESTS` is used for demo.
+- **“New loan” button:** If a draft exists, clicking opens that draft and continues from the saved step; otherwise the flow starts at step 1 with current amount/period.
 
-## فایل‌های مرتبط
+## Related files
 
-- **صفحه فلو:** `src/app/(main)/app/credit/loan/page.tsx`
-- **ذخیره/بازیابی:** `src/app/(main)/app/credit/loan/lib/loan-flow-storage.ts`
-- **مرحله گزارش اعتبار سنجی:** `src/shared/components/credit/credit-report-step.tsx`
-- **مودال احراز ویدیویی:** `src/shared/components/credit/video-verification-modal.tsx`
+- **Flow page:** `src/app/(main)/app/credit/loan/page.tsx`
+- **Storage/load:** `src/app/(main)/app/credit/loan/lib/loan-flow-storage.ts`
+- **Credit report step:** `src/shared/components/credit/credit-report-step.tsx`
+- **Video verification modal:** `src/shared/components/credit/video-verification-modal.tsx`
 
-## وضعیت فیچر
+## Feature status
 
-فرایند دریافت وام با پرسیست پیش‌نویس و نمایش در لیست درخواست‌ها به‌صورت فیچر تکمیل‌شده در نظر گرفته می‌شود. اتصال به API واقعی برای استعلام رتبه و آپلود ویدیو در نسخه‌های بعد قابل افزودن است.
+The loan flow with draft persistence and request list is considered complete. Real API integration for credit score and video upload can be added in later versions.

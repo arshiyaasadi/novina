@@ -1,10 +1,10 @@
-# راهنمای استقرار
+# Deployment guide
 
-## Environment Variables
+## Environment variables
 
-متغیرهای محیطی مورد نیاز در `.env.example` تعریف شده‌اند.
+Required variables are defined in `.env.example`.
 
-### Required Variables
+### Required
 
 ```env
 DATABASE_URL=file:./prisma/dev.db
@@ -14,174 +14,117 @@ LOG_FILE_PATH=./logs/app.log
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 NEXT_PUBLIC_DEFAULT_LOCALE=fa
 
-# GAPGPT AI Configuration (برای ارزیابی ریسک)
+# GAPGPT AI (for risk assessment)
 GAPGPT_API_KEY=your_gapgpt_api_key_here
 GAPGPT_BASE_URL=your_gapgpt_base_url_here
 GAPGPT_MODEL=your_gapgpt_model_here
 ```
 
-### Production Variables
+### Production
 
-برای production، این متغیرها را تنظیم کنید:
-
-- `DATABASE_URL`: مسیر دیتابیس production (در حال حاضر استفاده نمی‌شود چون Prisma غیرفعال است)
+- `DATABASE_URL`: Production database path (not used while Prisma is disabled)
 - `NODE_ENV`: `production`
-- `LOG_LEVEL`: `warn` یا `error`
-- `NEXT_PUBLIC_APP_URL`: URL اصلی اپلیکیشن
-- `GAPGPT_API_KEY`: کلید API برای سرویس GAPGPT (الزامی برای ارزیابی ریسک)
-- `GAPGPT_BASE_URL`: URL پایه سرویس GAPGPT (الزامی برای ارزیابی ریسک)
-- `GAPGPT_MODEL`: نام مدل AI برای استفاده (الزامی برای ارزیابی ریسک)
+- `LOG_LEVEL`: `warn` or `error`
+- `NEXT_PUBLIC_APP_URL`: Main app URL
+- `GAPGPT_*`: Required for risk assessment
 
-## Build Process
+## Build
 
-### Local Build
+### Local
 
 ```bash
-# Install dependencies
 yarn install
-
-# Generate Prisma Client
 yarn db:generate
-
-# Build
 yarn build
 ```
 
-### Production Build
+### Production
 
 ```bash
-# Set environment
 export NODE_ENV=production
-
-# Build
 yarn build
-
-# Start
 yarn start
 ```
 
-## Deployment Platforms
+## Deployment platforms
 
 ### Vercel
 
-1. پروژه را به GitHub push کنید
-2. در Vercel پروژه را import کنید
-3. Environment variables را تنظیم کنید
-4. Deploy کنید
+1. Push the project to GitHub
+2. Import the project in Vercel
+3. Set environment variables
+4. Deploy
 
-**نکات:**
-- Prisma migrations به صورت خودکار اجرا می‌شوند (در فاز ۲)
+Notes:
+- Prisma migrations run automatically (Phase 2)
 - Build command: `yarn build`
-- Output directory: `.next`
-- **مهم**: حتماً متغیرهای GAPGPT را تنظیم کنید وگرنه ارزیابی ریسک کار نمی‌کند
+- Output: `.next`
+- Set GAPGPT variables or risk assessment will not work
 
 ### Docker
 
-(بعداً اضافه می‌شود)
+(To be added later.)
 
-### Self-Hosted
+### Self-hosted
 
-1. سرور را آماده کنید (Node.js 18+)
-2. پروژه را clone کنید
-3. Dependencies را نصب کنید
-4. Environment variables را تنظیم کنید
-5. Database را setup کنید
-6. Build کنید
-7. با PM2 یا systemd اجرا کنید
+1. Prepare a server (Node.js 18+)
+2. Clone the repo
+3. Install dependencies and set environment variables
+4. Set up database
+5. Build and run with PM2 or systemd
 
-## Database Migration
+## Database migration
 
-> **نکته**: در فاز ۱، Prisma غیرفعال است و نیازی به migration نیست. دستورات زیر برای فاز ۲ آماده هستند.
-
-در production (فاز ۲)، migrations را به صورت دستی اجرا کنید:
+In Phase 1, Prisma is disabled; no migration is needed. For Phase 2 production:
 
 ```bash
 yarn db:migrate
 ```
 
-یا در deployment script:
-
-```bash
-yarn db:generate && yarn db:migrate && yarn build
-```
+Or in a deployment script: `yarn db:generate && yarn db:migrate && yarn build`
 
 ## Logging
 
-Logs در production در فایل `./logs/app.log` ذخیره می‌شوند.
-
-برای monitoring، می‌توانید از سرویس‌های زیر استفاده کنید:
-- Sentry
-- LogRocket
-- CloudWatch
+Logs are written to `./logs/app.log`. For monitoring consider Sentry, LogRocket, or CloudWatch.
 
 ## Security
 
-1. **Environment Variables**: هرگز در کد commit نکنید
-2. **Database**: از connection string امن استفاده کنید
-3. **HTTPS**: همیشه از HTTPS استفاده کنید
-4. **CORS**: CORS را به درستی تنظیم کنید
-5. **Rate Limiting**: برای API ها rate limiting اضافه کنید
+1. Never commit environment variables
+2. Use a secure database connection string
+3. Use HTTPS
+4. Configure CORS correctly
+5. Add rate limiting for APIs
 
 ## Performance
 
-1. **Caching**: از Next.js caching استفاده کنید
-2. **CDN**: برای static assets از CDN استفاده کنید
-3. **Database**: indexes را بهینه کنید
-4. **Images**: از Next.js Image component استفاده کنید
+1. Use Next.js caching
+2. Use a CDN for static assets
+3. Optimize database indexes
+4. Use the Next.js Image component
 
 ## Monitoring
 
-برای monitoring در production:
-
-1. **Error Tracking**: Sentry یا مشابه
-2. **Analytics**: Google Analytics یا مشابه
-3. **Uptime**: UptimeRobot یا مشابه
-4. **Logs**: Centralized logging
+- Error tracking (e.g. Sentry)
+- Analytics (e.g. Google Analytics)
+- Uptime (e.g. UptimeRobot)
+- Centralized logging
 
 ## Rollback
 
-در صورت مشکل:
-
-1. به version قبلی rollback کنید
-2. Database migration را revert کنید (در صورت نیاز)
-3. Environment variables را بررسی کنید
+1. Roll back to a previous version
+2. Revert database migrations if needed
+3. Verify environment variables
 
 ## Backup
 
-### Database Backup
+**SQLite:** `cp dev.db dev.db.backup-$(date +%Y%m%d)`
 
-برای SQLite:
-
-```bash
-cp dev.db dev.db.backup-$(date +%Y%m%d)
-```
-
-### Automated Backup
-
-برای production، backup خودکار تنظیم کنید:
-
-```bash
-# Cron job برای backup روزانه
-0 2 * * * cp /path/to/db.db /path/to/backup/db-$(date +\%Y\%m\%d).db
-```
+**Cron (daily):** `0 2 * * * cp /path/to/db.db /path/to/backup/db-$(date +\%Y\%m\%d).db`
 
 ## Troubleshooting
 
-### Build Fails
+**Build fails:** Check dependencies, TypeScript errors, and environment variables.
 
-1. Dependencies را بررسی کنید
-2. TypeScript errors را بررسی کنید
-3. Environment variables را بررسی کنید
+**Runtime errors:** Check logs, environment variables, and database connection.
 
-### Runtime Errors
-
-1. Logs را بررسی کنید
-2. Environment variables را بررسی کنید
-3. Database connection را بررسی کنید
-
-### Performance Issues
-
-1. Database queries را بهینه کنید
-2. Caching را بررسی کنید
-3. Bundle size را بررسی کنید
-
+**Performance:** Optimize queries, check caching, and bundle size.

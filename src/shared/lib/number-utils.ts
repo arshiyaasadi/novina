@@ -3,8 +3,8 @@
  * Use this for any user-facing text that may contain Persian/Arabic numerals.
  *
  * @example
- * convertToEnglishDigits("۰۹۱۲۳۴۵۶۷۸۹") // "09123456789"
- * convertToEnglishDigits("٠٩١٢٣٤٥٦٧٨٩") // "09123456789"
+ * convertToEnglishDigits("۰۹۱۲۳۴۵۶۷۸۹") => "09123456789"
+ * convertToEnglishDigits("٠٩١٢٣٤٥٦٧٨٩") => "09123456789"
  */
 export function convertToEnglishDigits(text: string): string {
   const persianDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];

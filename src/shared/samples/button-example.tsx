@@ -1,6 +1,6 @@
 /**
- * نمونه کامپوننت Button با Tailwind CSS
- * این فایل فقط به عنوان نمونه است و می‌توانید از آن کپی کنید
+ * Sample Button component with Tailwind CSS.
+ * This file is for reference only; copy as needed.
  */
 
 export function ButtonExample() {

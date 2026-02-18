@@ -9,7 +9,7 @@ interface UserState {
   user: LoggedInUserDto | null;
   setUser: (user: LoggedInUserDto | null) => void;
   clearUser: () => void;
-  /** همگام‌سازی از localStorage (یک بار بعد از لود یا بعد از لاگین) */
+  /** Hydrate from localStorage (once after load or after login) */
   hydrate: () => void;
 }
 

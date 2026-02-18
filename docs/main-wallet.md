@@ -1,50 +1,50 @@
-# کیف پول کلی پروژه (Main Wallet)
+# Main wallet
 
-## تعریف
+## Definition
 
-**کیف پول کلی** نمایانگر مجموع دارایی‌های قابل استفاده برای سرمایه‌گذاری (صدور واحدهای صندوق) است. ارزش کل کیف پول از دو بخش تشکیل می‌شود:
+The **main wallet** represents the total balance available for investment (fund unit issuance). Total value is the sum of:
 
-- **موجودی کیف پول:** مبلغ نقدی که کاربر به کیف پول واریز کرده است.
-- **مجموع اعتبارها:** اعتبار وام، اعتبار اوراق صندوق، اعتبار کریپتو و اعتبار TWIN.
+- **Wallet balance:** Cash the user has deposited into the wallet.
+- **Sum of credits:** Loan credit, fund paper credit, crypto credit, and TWIN credit.
 
 ```
-ارزش کل = موجودی کیف پول + اعتبار وام + اعتبار اوراق صندوق + اعتبار کریپتو + اعتبار TWIN
+Total value = wallet balance + loan credit + fund paper credit + crypto credit + TWIN credit
 ```
 
-همهٔ این منابع دارایی‌های قابل استفاده برای **سرمایه‌گذاری (صدور)** هستند؛ یعنی کاربر می‌تواند در مرحلهٔ فاکتور صدور از آن‌ها مطلع شود و (در فازهای بعدی) منبع پرداخت را انتخاب کند.
+All of these are usable for **investment (issuance)**; the user can see them at the issuance invoice step and (in later phases) choose the payment source.
 
 ---
 
-## منابع (Sources)
+## Sources
 
-| منبع | توضیح |
-|------|--------|
-| **موجودی کیف پول** | مبلغی که کاربر با واریز به کیف پول اضافه کرده و با برداشت کم می‌کند. |
-| **اعتبار وام** | اعتبار تخصیص‌یافته از تسهیلات وام. |
-| **اعتبار اوراق صندوق** | اعتبار ناشی از اوراق صندوق. |
-| **اعتبار کریپتو** | اعتبار مرتبط با دارایی کریپتو. |
-| **اعتبار TWIN** | اعتبار TWIN. |
+| Source              | Description                                                                 |
+|---------------------|-----------------------------------------------------------------------------|
+| **Wallet balance**  | Amount added by deposit and reduced by withdrawal.                          |
+| **Loan credit**     | Credit from loan facilities.                                                |
+| **Fund paper credit** | Credit from fund papers.                                                 |
+| **Crypto credit**  | Credit related to crypto assets.                                           |
+| **TWIN credit**     | TWIN credit.                                                               |
 
-همهٔ مبالغ به **تومان** ذخیره و نمایش داده می‌شوند.
-
----
-
-## جرنیش (تاریخچهٔ گردش)
-
-برای شفافیت و حسابداری، هر تغییری در موجودی یا اعتبارها در **جرنیش کیف پول** ثبت می‌شود. انواع رویدادهایی که ثبت می‌شوند عبارت‌اند از:
-
-- **واریز** به کیف پول
-- **برداشت** از کیف پول
-- **اعتبار وام / اوراق صندوق / کریپتو / TWIN** (هنگام تخصیص اعتبار)
-- **استفاده برای صدور** (هنگام پرداخت از کیف پول برای خرید واحد صندوق)
-- **ابطال** (دریافت مبلغ از ابطال واحد)
-
-جرنیش در یک جا (ماژول `main-wallet-storage`) نگهداری می‌شود و در بخش «جرنیش کیف پول» در کارت جزئیات کیف پول در صفحهٔ اصلی نمایش داده می‌شود.
+All amounts are stored and displayed in **Toman**.
 
 ---
 
-## محل پیاده‌سازی
+## Journal (transaction history)
 
-- **ذخیره و API:** `src/app/(main)/app/wallet/lib/main-wallet-storage.ts`
-- **صفحهٔ اصلی:** نمایش کیف پول و جرنیش در `src/app/(main)/app/page.tsx`
-- **مرحلهٔ فاکتور صدور:** نمایش «کیف پول و موجودی‌ها» در `src/app/(main)/app/assets/trade/page.tsx` (فقط برای سفارش نوع صدور)
+For clarity and accounting, every change to balance or credits is recorded in the **wallet journal**. Event types include:
+
+- **Deposit** to wallet
+- **Withdrawal** from wallet
+- **Loan / fund paper / crypto / TWIN credit** (when credit is allocated)
+- **Use for issuance** (when paying from wallet for fund units)
+- **Redemption** (amount received from unit redemption)
+
+The journal is maintained in one place (the `main-wallet-storage` module) and shown in the “Wallet journal” section on the main page wallet card.
+
+---
+
+## Implementation locations
+
+- **Storage and API:** `src/app/(main)/app/wallet/lib/main-wallet-storage.ts`
+- **Main page:** Wallet and journal display in `src/app/(main)/app/page.tsx`
+- **Issuance invoice step:** “Wallet and balances” display in `src/app/(main)/app/assets/trade/page.tsx` (for issuance orders only)

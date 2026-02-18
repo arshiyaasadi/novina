@@ -23,7 +23,7 @@ This document outlines all prerequisites and setup steps required before startin
 ### Database
 
 - [x] **Prisma Schema Defined** - Located in `prisma/schema.prisma`
-- [ ] **Database Initialized** (برای فاز ۲)
+- [ ] **Database Initialized** (for Phase 2)
   ```bash
   yarn db:generate  # Generate Prisma Client
   yarn db:push      # Create database and apply schema
@@ -32,7 +32,7 @@ This document outlines all prerequisites and setup steps required before startin
   ```
 - [ ] **Database Connection Verified** - Test with `yarn db:studio`
 
-> **⚠️ توجه**: در فاز ۱، Prisma Client غیرفعال است و از localStorage برای ذخیره داده‌ها استفاده می‌شود. نیازی به راه‌اندازی دیتابیس نیست.
+> **Note**: In Phase 1, Prisma Client is disabled and localStorage is used. No database setup is required.
 
 ### Authentication & Security
 
@@ -81,9 +81,9 @@ cp .env.example .env.local
 
 ### 3. Database Setup
 
-> **نکته**: در فاز ۱، Prisma غیرفعال است و نیازی به راه‌اندازی دیتابیس نیست. داده‌ها در localStorage ذخیره می‌شوند.
+> In Phase 1, Prisma is disabled and data is stored in localStorage. No database setup is required.
 
-برای فاز ۲ (زمانی که Prisma فعال شود):
+For Phase 2 (when Prisma is enabled):
 
 ```bash
 # Generate Prisma Client
@@ -126,11 +126,11 @@ curl -X POST http://localhost:3000/api/auth/register \
 
 | Variable | Description | Example | Notes |
 |----------|-------------|---------|-------|
-| `DATABASE_URL` | Prisma database connection string | `file:./prisma/dev.db` | برای فاز ۲ (فعلاً استفاده نمی‌شود) |
+| `DATABASE_URL` | Prisma database connection string | `file:./prisma/dev.db` | For Phase 2 (not used currently) |
 | `NODE_ENV` | Environment mode | `development` or `production` | - |
-| `GAPGPT_API_KEY` | API key for GAPGPT service | `your_api_key_here` | **الزامی برای ارزیابی ریسک** |
-| `GAPGPT_BASE_URL` | Base URL for GAPGPT service | `https://api.example.com` | **الزامی برای ارزیابی ریسک** |
-| `GAPGPT_MODEL` | AI model name to use | `gpt-4` | **الزامی برای ارزیابی ریسک** |
+| `GAPGPT_API_KEY` | API key for GAPGPT service | `your_api_key_here` | **Required for risk assessment** |
+| `GAPGPT_BASE_URL` | Base URL for GAPGPT service | `https://api.example.com` | **Required for risk assessment** |
+| `GAPGPT_MODEL` | AI model name to use | `gpt-4` | **Required for risk assessment** |
 
 ### Optional Variables
 

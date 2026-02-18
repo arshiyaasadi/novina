@@ -1,54 +1,54 @@
 # Backend Development Agent
 
-## Focus Areas
+## Focus areas
 
-این ایجنت برای توسعه Backend و API استفاده می‌شود.
+This agent is used for backend and API development.
 
 ## Responsibilities
 
-1. ساخت API Routes
-2. توسعه Domain logic (Services, Repositories)
-3. مدیریت دیتابیس با Prisma
-4. Error handling و logging
-5. اعتبارسنجی داده‌ها
+1. Create API routes
+2. Implement domain logic (services, repositories)
+3. Manage the database with Prisma
+4. Error handling and logging
+5. Input validation
 
 ## Guidelines
 
-### API Routes
+### API routes
 
-- API Routes در `src/app/api/` قرار می‌گیرند
-- از Controllers استفاده کنید
-- Error handling مناسب داشته باشید
+- API routes live in `src/app/api/`
+- Use controllers for handling
+- Apply proper error handling
 
-### Domain Structure
+### Domain structure
 
-- Business logic در Services
-- Data access در Repositories
-- Route handling در Controllers
+- Business logic in services
+- Data access in repositories
+- Route handling in controllers
 
 ### Database
 
-- از Prisma Client استفاده کنید
-- Queries را در Repository layer قرار دهید
-- از transactions برای عملیات‌های پیچیده استفاده کنید
+- Use the Prisma client
+- Keep queries in the repository layer
+- Use transactions for multi-step operations
 
-### Error Handling
+### Error handling
 
-- از try-catch استفاده کنید
-- از logger برای ثبت خطاها استفاده کنید
-- از `ErrorResponses` در `@/shared/types/errors` برای پاسخ‌های خطای استاندارد استفاده کنید
-- Error messages را به فارسی برگردانید
+- Use try/catch where appropriate
+- Use the logger for errors
+- Use `ErrorResponses` from `@/shared/types/errors` for standard error payloads
+- Return user-facing error messages in the app locale (i18n)
 
 ### Validation
 
-- اعتبارسنجی را در Controller layer با Zod انجام دهید
-- Schema های validation را در `types/index.ts` هر Domain تعریف کنید
-- از `safeParse` برای validation استفاده کنید
-- از TypeScript types استفاده کنید
+- Validate in the controller layer with Zod
+- Define validation schemas in each domain’s `types/index.ts`
+- Use `safeParse` for validation
+- Use TypeScript types
 
 ## Examples
 
-### ساخت API Route
+### API route
 
 ```typescript
 // src/app/api/auth/login/route.ts
@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-**نکته**: Error handling در Controller انجام می‌شود، نیازی به try-catch در Route نیست.
+**Note:** Error handling is done in the controller; the route does not need its own try/catch.
 
-### ساخت Service
+### Service
 
 ```typescript
 // src/domains/auth/services/auth.service.ts
@@ -89,7 +89,6 @@ export class AuthService {
         return null;
       }
 
-      // Verify password
       const isPasswordValid = await verifyPassword(
         credentials.password,
         user.password
@@ -116,14 +115,13 @@ export class AuthService {
   }
 
   async register(data: RegisterData): Promise<AuthResponse> {
-    // Hash password before storing
     const hashedPassword = await hashPassword(data.password);
     // ... rest of registration logic
   }
 }
 ```
 
-### ساخت Controller با Validation
+### Controller with validation
 
 ```typescript
 // src/domains/auth/controllers/auth.controller.ts
@@ -144,7 +142,6 @@ export class AuthController {
     try {
       const body = await request.json();
 
-      // Validate input with Zod
       const validationResult = loginSchema.safeParse(body);
       if (!validationResult.success) {
         const errorResponse = ErrorResponses.validation(validationResult.error.errors);
@@ -167,7 +164,7 @@ export class AuthController {
 }
 ```
 
-### ساخت Repository
+### Repository
 
 ```typescript
 // src/domains/auth/repositories/user.repository.ts
@@ -197,7 +194,7 @@ export class UserRepository {
 }
 ```
 
-### تعریف Validation Schema
+### Validation schema
 
 ```typescript
 // src/domains/auth/types/index.ts
@@ -214,4 +211,3 @@ export const registerSchema = z.object({
   name: z.string().optional(),
 });
 ```
-

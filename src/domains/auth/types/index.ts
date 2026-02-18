@@ -21,19 +21,19 @@ export interface AuthResponse {
 }
 
 /**
- * DTO کاربر لاگین‌شده (گلوبال)
- * پس از ورود کاربر این فیلدها در استور و در صورت نیاز در localStorage پر می‌شوند.
+* Logged-in user DTO (global).
+* After login these fields are set in the store and optionally persisted to localStorage.
  */
 export interface LoggedInUserDto {
-  /** شماره همراه */
+  /** Mobile number */
   mobile: string;
-  /** کد ملی */
+  /** National ID */
   nationalId: string;
-  /** نام */
+  /** First name */
   firstName: string;
-  /** نام خانوادگی */
+  /** Last name */
   lastName: string;
-  /** تاریخ تولد به صورت شمسی (مثلاً 1370/05/15) */
+  /** Birth date in Shamsi format (e.g. 1370/05/15) */
   birthDate: string;
 }
 

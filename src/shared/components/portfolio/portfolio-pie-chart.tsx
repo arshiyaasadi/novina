@@ -78,12 +78,16 @@ export function PortfolioPieChart({ items, className }: PortfolioPieChartProps) 
         return;
       }
 
-      const investments = JSON.parse(savedInvestments);
+      const investments = JSON.parse(savedInvestments) as Array<{
+        useLoan?: boolean;
+        loanPeriod?: number;
+        loanDetails?: { dueDate: string; monthlyInstallment: number };
+      }>;
       const installmentsList: Installment[] = [];
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      investments.forEach((investment: any, investmentIndex: number) => {
+      investments.forEach((investment, investmentIndex: number) => {
         if (investment.useLoan && investment.loanDetails && investment.loanPeriod) {
           const firstDueDate = new Date(investment.loanDetails.dueDate);
           const monthlyInstallment = investment.loanDetails.monthlyInstallment;
@@ -344,7 +348,7 @@ export function PortfolioPieChart({ items, className }: PortfolioPieChartProps) 
             })}
           </div>
 
-          {/* Action Button: فقط شروع سرمایه‌گذاری */}
+          {/* Action button: start investment only */}
           <div className="w-full flex pt-4">
             <Button
               onClick={() => router.push("/app/investment")}
@@ -357,7 +361,7 @@ export function PortfolioPieChart({ items, className }: PortfolioPieChartProps) 
         </div>
 
         {/* Distribution Section with Installments */}
-        {/* حذف نمایش توزیع سرمایه طبق درخواست */}
+        {/* Capital distribution display removed per request */}
         {/* <div className="space-y-3 pt-4 border-t">
           <button
             onClick={() => setIsDistributionOpen(!isDistributionOpen)}

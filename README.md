@@ -1,67 +1,67 @@
-# نوینآ (Novina)
+# Novina
 
-پلتفرم هوشمند مدیریت پورتفوی مالی و سرمایه‌گذاری
+Smart portfolio management and investment platform.
 
-## درباره پروژه
+## About the project
 
-نوینآ یک پلتفرم مالی است که به کاربران کمک می‌کند تا:
-- **پورتفوی مالی خود را بسازند** و مدیریت کنند
-- **سطح ریسک خود را تعیین کنند** بر اساس پروفایل سرمایه‌گذاری
-- **صندوق‌های سرمایه‌گذاری مناسب** را دریافت کنند
-- **وام اعتباری** برای سرمایه‌گذاری دریافت کنند
-- با استفاده از وام، در صندوق‌های پیشنهادی **سرمایه‌گذاری کنند** و سود کسب کنند
+Novina is a financial platform that helps users to:
+- **Build and manage** their financial portfolio
+- **Define their risk level** based on investment profile
+- **Get suitable investment funds** recommendations
+- **Receive credit/loan** for investment
+- **Invest** in suggested funds using the loan and earn returns
 
-### هدف پروژه
+### Project goal
 
-هدف اصلی نوینآ این است که کاربران بتوانند با دریافت وام اعتباری، در صندوق‌های سرمایه‌گذاری پیشنهادی سرمایه‌گذاری کنند و از سود حاصل از پورتفوی خود بهره‌مند شوند.
+The main goal of Novina is to let users receive credit, invest in suggested investment funds, and benefit from their portfolio returns.
 
-> **نکته**: در نسخه اولیه، تعداد صندوق‌های سرمایه‌گذاری محدود است، اما در آینده گسترش خواهد یافت.
+> **Note**: In the initial version, the number of investment funds is limited and will be expanded in the future.
 
-## ویژگی‌های پلتفرم
+## Platform features
 
-### عملکردی
-- 💼 ساخت و مدیریت پورتفوی مالی
-- 📊 تعیین سطح ریسک سرمایه‌گذاری
-- 🎯 پیشنهاد صندوق‌های سرمایه‌گذاری مناسب
-- 💰 دریافت وام اعتباری برای سرمایه‌گذاری
-- 📈 ردیابی سود و عملکرد پورتفوی
+### Functional
+- Portfolio construction and management
+- Investment risk level definition
+- Suitable investment fund recommendations
+- Credit/loan for investment
+- Portfolio returns and performance tracking
 
-### فنی
-- ⚡️ Next.js 14 با App Router
-- 🎨 Tailwind CSS + shadcn/ui
-- 🌐 بین‌المللی‌سازی (i18n) با next-intl
-- 🌓 Dark/Light Mode
-- 📱 Mobile-First Design
-- 🔄 RTL Support برای فارسی
-- 🗄️ Prisma + SQLite (Prisma فعلاً غیرفعال است)
-- 📝 سیستم لاگ با Winston
-- 🏗️ MVC + Domain-based Architecture
-- 🤖 AI Integration (GAPGPT) برای ارزیابی ریسک
-- 💾 localStorage برای ذخیره داده‌های موقت
+### Technical
+- Next.js 14 with App Router
+- Tailwind CSS + shadcn/ui
+- Internationalization (i18n) with next-intl
+- Dark/Light mode
+- Mobile-first design
+- RTL support for Persian
+- Prisma + SQLite (Prisma currently disabled)
+- Logging with Winston
+- MVC + domain-based architecture
+- AI integration (GAPGPT) for risk assessment
+- localStorage for temporary data
 
-## تکنولوژی‌ها
+## Tech stack
 
 - **Framework**: Next.js 14
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
+- **UI components**: shadcn/ui
 - **Icons**: Lucide React
-- **Database**: Prisma + SQLite (Prisma فعلاً غیرفعال است)
-- **Storage**: localStorage (برای داده‌های موقت)
-- **AI**: OpenAI SDK (GAPGPT) برای ارزیابی ریسک
+- **Database**: Prisma + SQLite (Prisma currently disabled)
+- **Storage**: localStorage (for temporary data)
+- **AI**: OpenAI SDK (GAPGPT) for risk assessment
 - **i18n**: next-intl
 - **Theme**: next-themes
 - **Logging**: Winston
 - **Charts**: Chart.js + react-chartjs-2
 
-## راه‌اندازی
+## Setup
 
-### پیش‌نیازها
+### Prerequisites
 
 - Node.js 18+
-- Yarn یا npm
+- Yarn or npm
 
-### نصب
+### Install
 
 ```bash
 # Clone repository
@@ -82,9 +82,9 @@ yarn db:push
 yarn dev
 ```
 
-پروژه در [http://localhost:3000](http://localhost:3000) اجرا می‌شود.
+The app runs at [http://localhost:3000](http://localhost:3000).
 
-## دستورات
+## Scripts
 
 ```bash
 # Development
@@ -100,7 +100,7 @@ yarn db:migrate   # Run migrations
 yarn db:studio    # Open Prisma Studio
 ```
 
-## ساختار پروژه
+## Project structure
 
 ```
 novina/
@@ -118,92 +118,66 @@ novina/
 │   │   ├── components/
 │   │   ├── ui/
 │   │   └── samples/
-│   ├── infrastructure/  # Infrastructure
+│   ├── infrastructure/   # Infrastructure
 │   │   ├── database/
 │   │   └── logging/
 │   └── i18n/             # Internationalization
 └── public/               # Static files
 ```
 
-## مستندات
+## Documentation
 
-- [معماری پروژه](./docs/architecture.md)
-- [راهنمای توسعه](./docs/development.md)
-- [سیستم طراحی](./docs/design-system.md)
-- [ساختار دیتابیس](./docs/database.md)
-- [راهنمای استقرار](./docs/deployment.md)
+- [Architecture](./docs/architecture.md)
+- [Development guide](./docs/development.md)
+- [Design system](./docs/design-system.md)
+- [Database](./docs/database.md)
+- [Deployment](./docs/deployment.md)
+- [Features](./docs/features/) — [Loan flow](./docs/features/loan-flow.md), [Assets trade](./docs/features/assets-trade-flow.md), [Wallet flows](./docs/features/wallet-flows.md), [Activities & installments](./docs/features/activities-and-installments.md), [Investment flow](./docs/features/investment-flow.md)
 
-## توسعه
+## Development
 
-برای اطلاعات بیشتر درباره توسعه، به [راهنمای توسعه](./docs/development.md) مراجعه کنید.
+For more on development, see the [Development guide](./docs/development.md).
 
-## وضعیت پروژه
+## Project status
 
-✅ **فاز ۱ تکمیل شده (v1.0.0)**
+**Phase 1 complete (v1.0.0)**
 
-پروژه فاز ۱ را با موفقیت تکمیل کرده و آماده استفاده است. تمام ویژگی‌های اصلی پیاده‌سازی شده‌اند.
+Phase 1 is complete and the project is ready to use. All main features are implemented.
 
-## ویژگی‌های پیاده‌سازی‌شده (فاز ۱)
+### Implemented features (Phase 1)
 
-### ✅ ارزیابی ریسک
-- سیستم ارزیابی ریسک با استفاده از AI (GAPGPT)
-- پرسش‌نامه تعاملی برای تعیین پروفایل ریسک کاربر
-- تعیین پروفایل: محافظه‌کار، متعادل، یا جسور
-- پیشنهاد خودکار صندوق‌های سرمایه‌گذاری بر اساس پروفایل ریسک
+- **Risk assessment**: AI-based risk assessment (GAPGPT), interactive questionnaire, risk profiles (conservative, balanced, aggressive), fund recommendations.
+- **Investment**: Full investment flow with loan option; 3/6/9 month terms; automatic loan, interest, and installment calculation; invoice and receipt generation.
+- **Portfolio management**: Pie chart, current value per fund, price change line chart, suggested vs active portfolio comparison.
+- **Installment tracking**: Installment management page, due dates, payment status.
+- **Assets**: User assets page, fund details, profit/loss tracking.
+- **User profile**: User info and app settings.
 
-### ✅ سرمایه‌گذاری
-- جریان کامل سرمایه‌گذاری با امکان استفاده از وام
-- گزینه‌های وام: ۳، ۶، و ۹ ماهه با نرخ بهره متفاوت
-- محاسبه خودکار مبلغ وام، بهره، و اقساط ماهانه
-- تولید فاکتور و رسید سرمایه‌گذاری
+## Roadmap
 
-### ✅ مدیریت پورتفوی
-- نمایش پورتفوی با نمودار دایره‌ای
-- ردیابی ارزش فعلی هر صندوق
-- نمایش تغییرات قیمت با نمودار خطی
-- مقایسه پورتفوی پیشنهادی با پورتفوی فعال
+### Phase 1 (complete)
+- [x] Auth flow
+- [x] User risk profile
+- [x] Fund recommendations
+- [x] Credit/loan system
+- [x] Portfolio dashboard
+- [x] Returns and performance tracking
+- [x] Invoice and receipt
 
-### ✅ ردیابی اقساط
-- صفحه مدیریت اقساط وام
-- نمایش تاریخ سررسید هر قسط
-- امکان پرداخت اقساط
-- نمایش وضعیت پرداخت‌ها
+### Phase 2 (planned)
+- [ ] Real database (currently localStorage)
+- [ ] Enable Prisma
+- [ ] Full auth with JWT
+- [ ] Session management
+- [ ] More investment funds
+- [ ] Real pricing APIs
+- [ ] Notifications
+- [ ] Advanced reporting
 
-### ✅ دارایی‌ها
-- صفحه نمایش دارایی‌های کاربر
-- نمایش جزئیات هر صندوق سرمایه‌گذاری
-- ردیابی سود و زیان
+## Contributing
 
-### ✅ پروفایل کاربر
-- مدیریت اطلاعات کاربری
-- تنظیمات اپلیکیشن
+The project is under active development; a contribution guide will be added later.
 
-## نقشه راه
-
-### فاز ۱ (تکمیل شده) ✅
-- [x] تکمیل سیستم احراز هویت
-- [x] پیاده‌سازی پروفایل ریسک کاربر
-- [x] سیستم پیشنهاد صندوق‌های سرمایه‌گذاری
-- [x] سیستم وام اعتباری
-- [x] داشبورد مدیریت پورتفوی
-- [x] ردیابی سود و عملکرد
-- [x] تولید فاکتور و رسید
-
-### فاز ۲ (آینده)
-- [ ] اتصال به دیتابیس واقعی (فعلاً از localStorage استفاده می‌شود)
-- [ ] فعال‌سازی Prisma و اتصال به دیتابیس
-- [ ] سیستم احراز هویت کامل با JWT
-- [ ] مدیریت جلسه کاربر (Session Management)
-- [ ] گسترش تعداد صندوق‌های سرمایه‌گذاری
-- [ ] اتصال به API های واقعی قیمت‌گذاری
-- [ ] سیستم اعلان‌رسانی
-- [ ] گزارش‌گیری پیشرفته
-
-## مشارکت
-
-پروژه در حال توسعه است و در آینده راهنمای مشارکت اضافه خواهد شد.
-
-## مجوز
+## License
 
 MIT License
-

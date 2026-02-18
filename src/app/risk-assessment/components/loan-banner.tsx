@@ -70,7 +70,7 @@ export function LoanBanner({ className }: LoanBannerProps) {
         {/* Center Text */}
         <div className="flex-1 text-center space-y-0.5 sm:space-y-1 px-2">
           <p className="text-base sm:text-lg font-semibold text-teal-700 dark:text-teal-300">
-            "وام تا ۷۰٪ مبلغ"
+            &quot;وام تا ۷۰٪ مبلغ&quot;
           </p>
           <p className="text-sm sm:text-base font-medium text-teal-600 dark:text-teal-400">
             سرمایه‌گذاری شما

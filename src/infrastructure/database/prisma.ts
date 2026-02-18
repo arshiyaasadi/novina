@@ -15,6 +15,6 @@
 
 // if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-// Mock/stub export to prevent import errors
+// Mock/stub export to prevent import errors when Prisma is disabled (intentionally untyped).
 export const prisma = null as any;
 

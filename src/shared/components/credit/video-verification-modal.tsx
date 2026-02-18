@@ -9,7 +9,7 @@ type Phase = "permission" | "camera" | "recording" | "upload";
 export interface VideoVerificationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** پس از نمایش «احراز هویت موفق» فراخوانی می‌شود؛ والد مودال را می‌بندد و به مرحله بعد می‌رود */
+  /** Called after "Verification successful"; parent closes modal and advances to next step */
   onSuccess: () => void;
 }
 
@@ -40,7 +40,7 @@ export function VideoVerificationModal({
     }
   };
 
-  // وقتی به فاز دوربین/ضبط می‌رویم، ویدیو الان در DOM است؛ استریم را به آن وصل می‌کنیم
+  // When entering camera/recording phase, video is in DOM; attach stream to it
   useEffect(() => {
     if ((phase === "camera" || phase === "recording") && streamRef.current && videoRef.current) {
       videoRef.current.srcObject = streamRef.current;

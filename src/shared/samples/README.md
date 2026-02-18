@@ -1,16 +1,16 @@
-# نمونه کامپوننت‌های Tailwind
+# Tailwind sample components
 
-این پوشه برای نگهداری نمونه کامپوننت‌های Tailwind CSS است که می‌توانید از آن‌ها به عنوان مرجع استفاده کنید.
+This folder holds sample Tailwind CSS components for reference.
 
-## نحوه استفاده
+## How to use
 
-زمانی که می‌خواهید یک کامپوننت جدید بسازید:
-1. نمونه مشابه را در این پوشه پیدا کنید
-2. کد را کپی کنید
-3. آن را به `src/shared/components` یا `src/shared/ui` منتقل کنید
-4. در صورت نیاز، آن را با shadcn/ui ترکیب کنید
+When creating a new component:
 
-## نمونه‌ها
+1. Look for a similar sample in this folder
+2. Copy the code
+3. Move or add it under `src/shared/components` or `src/shared/ui`
+4. Combine with shadcn/ui if needed
 
-کامپوننت‌های نمونه را در اینجا قرار دهید.
+## Samples
 
+Place sample components here.

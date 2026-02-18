@@ -97,7 +97,7 @@ const mockPrices: FundPrice[] = [
   { id: 2, currentPrice: 118000, change24h: 0.3 },
   { id: 3, currentPrice: 2850000, change24h: -1.2 },
   { id: 4, currentPrice: 95000, change24h: 2.1 },
-  { id: 5, currentPrice: 12500, change24h: 1.8 }, // توکن نقره TWIN
+  { id: 5, currentPrice: 12500, change24h: 1.8 }, // Silver token TWIN
 ];
 
 // Fund colors - same as portfolio pie chart
@@ -147,7 +147,7 @@ const creditSliderItems = [
   },
 ] as const;
 
-/** فرمت تاریخ شمسی با اسلش: فقط رقم (فارسی/انگلیسی) → YYYY/MM/DD */
+/** Shamsi date format with slashes: digits only (Persian/English) → YYYY/MM/DD */
 function formatShamsiDateInput(raw: string): string {
   const digits = convertToEnglishDigits(raw).replace(/\D/g, "").slice(0, 8);
   if (digits.length <= 4) return digits;
@@ -164,10 +164,10 @@ function validateShamsiDate(value: string): boolean {
   return true;
 }
 
-/** برای نمایش فیک بعد از احراز هویت: چند صندوق با درصدهای رندوم که جمعشان ۱۰۰ شود */
+/** Mock portfolio after verification: random fund counts and percentages that sum to 100 */
 function generateRandomPortfolioItems(): PortfolioItem[] {
   const funds = getAllFunds();
-  const count = Math.min(2 + Math.floor(Math.random() * 3), funds.length); // 2 تا 4 صندوق
+  const count = Math.min(2 + Math.floor(Math.random() * 3), funds.length); // 2 to 4 funds
   const indices: number[] = [];
   while (indices.length < count) {
     const i = Math.floor(Math.random() * funds.length);
@@ -200,7 +200,7 @@ export default function AppPage() {
   const [priceChartPeriod, setPriceChartPeriod] = useState<"1d" | "1w" | "1m">("1d");
   const [primaryColor, setPrimaryColor] = useState<string>("hsl(225, 68%, 22%)");
   const [walletRegistered, setWalletRegistered] = useState(false);
-  const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(null); // فقط برای کیف پول کریپتو
+  const [walletBalances, setWalletBalances] = useState<WalletBalances | null>(null); // for crypto wallet only
   const [isWalletBalanceVisible, setIsWalletBalanceVisible] = useState(true);
   const [isWalletMoreInfoOpen, setIsWalletMoreInfoOpen] = useState(false);
   const [isCardsModalOpen, setIsCardsModalOpen] = useState(false);
@@ -252,7 +252,7 @@ export default function AppPage() {
       setWalletBalances(walletState.walletBalances);
 
       if (typeof window !== "undefined") {
-        // Load main wallet bank cards (کیف پول اصلی غیرکریپتو)
+        // Load main wallet bank cards (non-crypto main wallet)
         const storedCards = localStorage.getItem("mainWalletCards");
         if (storedCards) {
           try {
@@ -287,7 +287,7 @@ export default function AppPage() {
     }
   }, []);
 
-  // اگر فقط یک کارت بانکی داریم و مودال واریز باز است، همان کارت را خودکار انتخاب کن
+  // If we have only one bank card and deposit modal is open, auto-select that card
   useEffect(() => {
     if (isDepositModalOpen && !selectedCardForDeposit && mainWalletCards.length === 1) {
       setSelectedCardForDeposit(mainWalletCards[0] || null);
@@ -332,7 +332,7 @@ export default function AppPage() {
     return value.replace(/\d/g, (d) => persianDigits[Number(d)]);
   };
 
-  // تبدیل عدد به حروف فارسی (مبنای ریال/تومان)
+  // Convert number to Persian words (Rial/Toman base)
   const wordifyfa = (num: string | number, level = 0): string => {
     const toEnglishDigits = (val: string | number): number => {
       if (typeof val !== "string") {
@@ -425,7 +425,7 @@ export default function AppPage() {
     return `${wordifyfa(amount, 0)} تومان`;
   };
 
-  // نرمال‌سازی ورودی مبلغ (حذف جداکننده‌ها و تبدیل ارقام فارسی/عربی به انگلیسی)
+  // Normalize amount input (strip separators, convert Persian/Arabic digits to English)
   const normalizeAmountInput = (raw: string): number => {
     const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
     const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
@@ -448,7 +448,7 @@ export default function AppPage() {
   };
 
   const normalizeCardInput = (value: string): { digits: string; formatted: string } => {
-    // تبدیل ارقام فارسی/عربی به انگلیسی و حذف کاراکترهای غیرعددی
+    // Convert Persian/Arabic digits to English and strip non-digit characters
     const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
     const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
     let digits = "";
@@ -466,10 +466,10 @@ export default function AppPage() {
       }
     }
 
-    // محدود کردن به حداکثر ۱۶ رقم (ماسک 9999 9999 9999 9999)
+    // Limit to 16 digits (mask 9999 9999 9999 9999)
     digits = digits.slice(0, 16);
 
-    // فرمت کردن برای نمایش به صورت 4-4-4-4
+    // Format for display as 4-4-4-4
     let formatted = digits;
     if (digits.length > 0) {
       const part1 = digits.slice(0, 4);
@@ -487,11 +487,11 @@ export default function AppPage() {
 
   const handleAddMainWalletCard = () => {
     const digitsOnly = newCardNumber.replace(/\D/g, "");
-    // فرمت کارت: 9999 9999 9999 9999 → ۱۶ رقم (۴+۴+۴+۴)
+    // Card format: 9999 9999 9999 9999 → 16 digits (4+4+4+4)
     if (digitsOnly.length !== 16) {
       return;
     }
-    // اعتبارسنجی BIN از روی لیست بانک‌ها
+    // Validate BIN against bank list
     const bank = handlerBank(digitsOnly);
     const isValidBin = !!bank.bankName && bank.id !== "pasinno";
     if (!isValidBin) {
@@ -511,7 +511,7 @@ export default function AppPage() {
 
   const formatCardNumberForDisplay = (card: string): string => {
     const digits = card.replace(/\D/g, "");
-    // نمایش به صورت 9999 9999 9999 9999 (۴-۴-۴-۴)
+    // Display as 9999 9999 9999 9999 (4-4-4-4)
     if (digits.length !== 16) return card;
     return `${digits.slice(0, 4)} ${digits.slice(4, 8)} ${digits.slice(8, 12)} ${digits.slice(12, 16)}`;
   };
@@ -712,7 +712,7 @@ export default function AppPage() {
         mode: "index" as const,
         intersect: false,
         callbacks: {
-          label: (context: any) => {
+          label: (context: { parsed: { y: number } }) => {
             return `${formatNumber(Math.round(context.parsed.y))} تومان`;
           },
         },
@@ -752,7 +752,7 @@ export default function AppPage() {
         label: "ارزش سرمایه",
         data: chartData.map((d) => d.value),
         fill: true,
-        backgroundColor: (context: any) => {
+        backgroundColor: (context: { chart: { ctx: CanvasRenderingContext2D; chartArea?: { top: number; bottom: number } } }) => {
           const chart = context.chart;
           const { ctx, chartArea } = chart;
           if (!chartArea) return "transparent";
@@ -793,7 +793,7 @@ export default function AppPage() {
       <>
         <div className="flex flex-col items-center justify-center p-4 min-h-full">
           <div className="w-full max-w-md space-y-6">
-          {/* Main Wallet Card – بالای صفحه اصلی */}
+          {/* Main Wallet Card – top of main page */}
           <Card className="overflow-hidden">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -957,7 +957,7 @@ export default function AppPage() {
             </CardContent>
           </Card>
 
-          {/* راهنمای کیف پول کلی */}
+          {/* Main wallet guide */}
           <Dialog open={isMainWalletHelpOpen} onOpenChange={setIsMainWalletHelpOpen}>
             <DialogContent onClose={() => setIsMainWalletHelpOpen(false)}>
               <DialogHeader>
@@ -975,7 +975,7 @@ export default function AppPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Main Wallet Cards Modal – فقط برای حالت پورتفوی خالی نیز رندر شود */}
+          {/* Main Wallet Cards Modal – also render when portfolio is empty */}
           <Dialog open={isCardsModalOpen} onOpenChange={setIsCardsModalOpen}>
             <DialogContent onClose={() => setIsCardsModalOpen(false)}>
               <DialogHeader>
@@ -1441,7 +1441,7 @@ export default function AppPage() {
 
           <Card className="overflow-hidden">
             <CardContent className="p-0">
-              {/* بخش اول: پورتفوی خالی */}
+              {/* Section 1: Empty portfolio */}
               <div className="flex flex-col items-center text-center p-6 pb-5 bg-muted/20">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted/80 text-muted-foreground mb-3">
                   <TrendingUp className="h-5 w-5" />
@@ -1462,7 +1462,7 @@ export default function AppPage() {
 
               <div className="h-px bg-border shrink-0" aria-hidden />
 
-              {/* بخش دوم: اتصال حساب */}
+              {/* Section 2: Connect account */}
               <div className="flex flex-col items-center text-center p-6 pt-5">
                 <h3 className="text-sm font-semibold text-foreground mb-2">اتصال حساب</h3>
                 <p className="text-sm text-muted-foreground text-right leading-relaxed max-w-[90%] mb-4">
@@ -1484,7 +1484,7 @@ export default function AppPage() {
             </CardContent>
           </Card>
 
-          {/* مودال تکمیل پروفایل (کد ملی + تاریخ تولد) */}
+          {/* Complete profile modal (national ID + birth date) */}
           <Dialog
             open={isCompleteProfileModalOpen}
             onOpenChange={(open) => {
@@ -1713,7 +1713,7 @@ export default function AppPage() {
     <>
       <div className="flex flex-col p-4 space-y-6">
         <div className="w-full max-w-md mx-auto space-y-6">
-        {/* Main Wallet Card – بالای صفحه اصلی */}
+        {/* Main Wallet Card – top of main page */}
         <Card className="overflow-hidden">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -1911,7 +1911,7 @@ export default function AppPage() {
           </Card>
         )}
 
-        {/* دارایی‌های من — با پورتفو (با یا بدون سرمایه‌گذاری) */}
+        {/* My assets — with portfolio (with or without investment) */}
         {portfolio.length > 0 && (() => {
           const hasInvestment = latestInvestment && latestInvestment.portfolio.length > 0;
           if (hasInvestment) {
@@ -1959,7 +1959,7 @@ export default function AppPage() {
                   </p>
                 </div>
               </div>
-              {/* چارت درصد دارایی‌ها — سهم هر دارایی بر اساس ارزش تخمینی نسبت به مجموع ارزش تخمینی */}
+              {/* Asset percentage chart — each asset share by estimated value vs total estimated value */}
               <div className="rounded-lg border bg-muted/30 overflow-hidden" dir="ltr">
                 <div className="h-[280px] w-full min-h-[280px]">
                   {(() => {
@@ -2125,7 +2125,7 @@ export default function AppPage() {
           </Card>
           );
           }
-          // پورتفو ساخته شده ولی هنوز سرمایه‌گذاری نشده
+          // Portfolio built but not yet invested
           const displayItems = portfolio;
           const pieData = displayItems.map((item, i) => ({
             id: item.fundName,
@@ -2279,9 +2279,9 @@ export default function AppPage() {
         <Dialog open={isInfoModalOpen} onOpenChange={setIsInfoModalOpen}>
           <DialogContent onClose={() => setIsInfoModalOpen(false)}>
             <DialogHeader>
-              <DialogTitle>راهنمای دارایی‌های من</DialogTitle>
+              <DialogTitle>My assets guide</DialogTitle>
               <DialogDescription>
-                توضیحات مربوط به نمایش دارایی‌ها
+                Description of how assets are displayed
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -2302,9 +2302,9 @@ export default function AppPage() {
           </DialogContent>
         </Dialog>
 
-        {/* پورتفوی سرمایه‌گذاری جداگانه حذف شد — محتوا داخل کارت دارایی‌های من نمایش داده می‌شود */}
+        {/* Separate investment portfolio removed — content shown inside My assets card */}
 
-        {/* Main Wallet Cards Modal (افزودن کارت بانکی) */}
+        {/* Main Wallet Cards Modal (add bank card) */}
         <Dialog open={isCardsModalOpen} onOpenChange={setIsCardsModalOpen}>
           <DialogContent>
             <DialogHeader>
@@ -2448,7 +2448,7 @@ export default function AppPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Deposit Modal – برای حالت داشتن پورتفوی نیز در دسترس است */}
+        {/* Deposit Modal – also available when user has portfolio */}
         <Dialog open={isDepositModalOpen} onOpenChange={setIsDepositModalOpen}>
           <DialogContent onClose={() => setIsDepositModalOpen(false)}>
             <DialogHeader>
@@ -2584,7 +2584,7 @@ export default function AppPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Withdraw Modal – برای حالت داشتن پورتفوی نیز در دسترس است */}
+        {/* Withdraw Modal – also available when user has portfolio */}
         <Dialog open={isWithdrawModalOpen} onOpenChange={setIsWithdrawModalOpen}>
           <DialogContent onClose={() => setIsWithdrawModalOpen(false)}>
             <DialogHeader>
@@ -2740,7 +2740,7 @@ export default function AppPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Wallet: ولت من - above banner (only when registered) */}
+        {/* Wallet: My wallet - above banner (only when registered) */}
         {walletRegistered && (
           <Card
             className="cursor-pointer transition-all hover:bg-muted/50 active:scale-[0.98]"

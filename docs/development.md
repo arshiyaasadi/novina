@@ -1,51 +1,51 @@
-# راهنمای توسعه
+# Development guide
 
-> **نکته**: برای چک‌لیست کامل آمادگی توسعه، به [Development Checklist](./development-checklist.md) مراجعه کنید.
+> For a full development readiness checklist, see [Development checklist](./development-checklist.md).
 
-## راه‌اندازی پروژه
+## Project setup
 
-### پیش‌نیازها
+### Prerequisites
 
-- Node.js 18+ 
-- Yarn یا npm
+- Node.js 18+
+- Yarn or npm
 - Git
 
-### نصب وابستگی‌ها
+### Install dependencies
 
 ```bash
 yarn install
-# یا
+# or
 npm install
 ```
 
-### تنظیم محیط
+### Environment
 
-1. فایل `.env.local` را از `.env.example` کپی کنید:
+1. Copy `.env.example` to `.env.local`:
 
 ```bash
 cp .env.example .env.local
 ```
 
-2. متغیرهای محیطی را تنظیم کنید:
+2. Set environment variables:
 
-**متغیرهای الزامی:**
-- `DATABASE_URL`: مسیر دیتابیس (مثلاً `file:./prisma/dev.db`)
-- `NODE_ENV`: محیط اجرا (`development` یا `production`)
+**Required:**
+- `DATABASE_URL`: Database path (e.g. `file:./prisma/dev.db`)
+- `NODE_ENV`: `development` or `production`
 
-**متغیرهای GAPGPT (الزامی برای ارزیابی ریسک):**
-- `GAPGPT_API_KEY`: کلید API برای سرویس GAPGPT
-- `GAPGPT_BASE_URL`: URL پایه سرویس GAPGPT
-- `GAPGPT_MODEL`: نام مدل AI برای استفاده
+**GAPGPT (required for risk assessment):**
+- `GAPGPT_API_KEY`: API key for GAPGPT
+- `GAPGPT_BASE_URL`: GAPGPT base URL
+- `GAPGPT_MODEL`: AI model name
 
-**متغیرهای اختیاری:**
-- `LOG_LEVEL`: سطح لاگ (پیش‌فرض: `info`)
-- `LOG_FILE_PATH`: مسیر فایل لاگ (پیش‌فرض: `./logs/app.log`)
-- `NEXT_PUBLIC_APP_URL`: URL عمومی اپلیکیشن (پیش‌فرض: `http://localhost:3000`)
-- `NEXT_PUBLIC_DEFAULT_LOCALE`: زبان پیش‌فرض (پیش‌فرض: `fa`)
+**Optional:**
+- `LOG_LEVEL`: Log level (default: `info`)
+- `LOG_FILE_PATH`: Log file path (default: `./logs/app.log`)
+- `NEXT_PUBLIC_APP_URL`: Public app URL (default: `http://localhost:3000`)
+- `NEXT_PUBLIC_DEFAULT_LOCALE`: Default locale (default: `fa`)
 
-### راه‌اندازی دیتابیس
+### Database setup
 
-> **نکته**: در فاز ۱، Prisma غیرفعال است و از localStorage استفاده می‌شود. دستورات زیر برای فاز ۲ آماده هستند.
+> In Phase 1, Prisma is disabled and localStorage is used. The commands below are for Phase 2.
 
 ```bash
 # Generate Prisma Client
@@ -54,13 +54,13 @@ yarn db:generate
 # Create database and run migrations
 yarn db:push
 
-# یا برای migration
+# or use migrations
 yarn db:migrate
 ```
 
-**برای فاز ۱**: نیازی به راه‌اندازی دیتابیس نیست. داده‌ها در localStorage ذخیره می‌شوند.
+**Phase 1**: No database setup needed; data is stored in localStorage.
 
-### اجرای پروژه
+### Run the project
 
 ```bash
 # Development
@@ -73,7 +73,7 @@ yarn build
 yarn start
 ```
 
-## دستورات مهم
+## Important commands
 
 ```bash
 # Database
@@ -89,35 +89,35 @@ yarn start          # Start production server
 yarn lint           # Run ESLint
 ```
 
-## استانداردهای کدنویسی
+## Coding standards
 
 ### TypeScript
 
-- از TypeScript strict mode استفاده کنید
-- از `any` استفاده نکنید
-- Types را در فایل `types/` هر Domain تعریف کنید
+- Use TypeScript strict mode
+- Avoid `any`
+- Define types in each domain’s `types/` folder
 
-### Naming Conventions
+### Naming
 
-- **Files**: kebab-case (مثلاً `user-repository.ts`)
-- **Classes**: PascalCase (مثلاً `UserRepository`)
-- **Functions/Variables**: camelCase (مثلاً `getUserById`)
-- **Constants**: UPPER_SNAKE_CASE (مثلاً `MAX_RETRY_COUNT`)
+- **Files**: kebab-case (e.g. `user-repository.ts`)
+- **Classes**: PascalCase (e.g. `UserRepository`)
+- **Functions/variables**: camelCase (e.g. `getUserById`)
+- **Constants**: UPPER_SNAKE_CASE (e.g. `MAX_RETRY_COUNT`)
 
-### File Structure
+### File structure
 
-هر Domain باید شامل این پوشه‌ها باشد:
-- `controllers/` - Route handlers
-- `services/` - Business logic
-- `repositories/` - Data access
-- `models/` - Domain models
-- `types/` - TypeScript types
+Each domain should have:
+- `controllers/` — route handlers
+- `services/` — business logic
+- `repositories/` — data access
+- `models/` — domain models
+- `types/` — TypeScript types
 
-### Import Order
+### Import order
 
-1. React/Next.js imports
+1. React/Next.js
 2. Third-party libraries
-3. Internal imports (با `@/`)
+3. Internal imports (`@/`)
 4. Relative imports
 5. Types
 
@@ -128,18 +128,18 @@ import { UserRepository } from "../repositories/user.repository";
 import type { UserResponse } from "../types";
 ```
 
-## Git Workflow
+## Git workflow
 
-### Branch Naming
+### Branch naming
 
-- `feature/` - برای ویژگی‌های جدید
-- `fix/` - برای رفع باگ
-- `docs/` - برای مستندات
-- `refactor/` - برای بازنویسی کد
+- `feature/` — new features
+- `fix/` — bug fixes
+- `docs/` — documentation
+- `refactor/` — refactoring
 
-### Commit Messages
+### Commit messages
 
-از format زیر استفاده کنید:
+Use this format:
 
 ```
 type(scope): subject
@@ -147,16 +147,9 @@ type(scope): subject
 body (optional)
 ```
 
-Types:
-- `feat`: ویژگی جدید
-- `fix`: رفع باگ
-- `docs`: مستندات
-- `style`: فرمت کد
-- `refactor`: بازنویسی
-- `test`: تست
-- `chore`: کارهای دیگر
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
 
-مثال:
+Example:
 ```
 feat(auth): add login functionality
 
@@ -165,11 +158,11 @@ Implement user login with email and password validation
 
 ## Testing
 
-(بعداً اضافه می‌شود)
+(To be added later.)
 
 ## Debugging
 
-از logger برای debugging استفاده کنید:
+Use the logger for debugging:
 
 ```typescript
 import { logger } from "@/infrastructure/logging";
@@ -178,13 +171,24 @@ logger.info("User logged in", { userId: user.id });
 logger.error("Login failed", { error, email });
 ```
 
-Logs در `./logs/app.log` ذخیره می‌شوند.
+Logs are written to `./logs/app.log`.
 
-## Best Practices
+## Best practices
 
-1. **Error Handling**: همیشه try-catch استفاده کنید
-2. **Logging**: خطاها و رویدادهای مهم را لاگ کنید
-3. **Type Safety**: از TypeScript به درستی استفاده کنید
-4. **Code Reuse**: کدهای مشترک را در `shared/` قرار دهید
-5. **Documentation**: کدهای پیچیده را مستند کنید
+1. **Error handling**: Use try/catch where appropriate
+2. **Logging**: Log errors and important events
+3. **Type safety**: Use TypeScript consistently
+4. **Code reuse**: Put shared code in `shared/`
+5. **Documentation**: Document complex code
 
+## Future work (Phase 2 / API integration)
+
+The following are left as TODOs for Phase 2 or real API integration:
+
+- **Resend OTP**: `src/shared/components/auth/phone-login.tsx` — call API to resend OTP
+- **Verify national ID (profile)**: `src/app/(main)/app/profile/page.tsx` — call API to verify national ID and load user info
+- **Verify national ID (modal)**: `src/shared/components/profile/national-id-modal.tsx` — call API to verify national ID
+- **Login OTP**: `src/app/(auth)/login/page.tsx` — call APIs to send and verify OTP
+- **Profile navigation**: `src/shared/components/profile/app-settings-section.tsx` — navigate to about page and activity history
+
+Until then, inline comments use the form `// TODO(phase2): ...` and behavior is mock or local-only.

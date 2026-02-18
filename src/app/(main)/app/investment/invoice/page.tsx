@@ -230,7 +230,7 @@ export default function InvoicePage() {
   const handlePayment = () => {
     if (walletRequired > 0 && !canPayFromMainWallet) return;
 
-    // کسر از کیف پول اصلی (اعتبار کریپتو+TWIN، وام، موجودی نقد)
+    // Deduct from main wallet (crypto+TWIN credit, loan, cash balance)
     if (walletRequired > 0 && (takeFromCrypto > 0 || takeFromTwin > 0 || takeFromLoan > 0 || takeFromMain > 0)) {
       const creds = useMainWalletStore.getState().walletCredits;
       const main = useMainWalletStore.getState().mainWalletBalance;
@@ -333,7 +333,7 @@ export default function InvoicePage() {
   const shouldEnforceAllocation = !!walletBalances && walletRequired > 0;
   const canPayBase = !useLoan || isAgreementAccepted;
 
-  // کیف پول اصلی: ترتیب کسر مثل assets/trade (کریپتو+TWIN، وام، موجودی نقد)
+  // Main wallet: deduction order same as assets/trade (crypto+TWIN, loan, cash)
   const credits = walletCreditsFromStore;
   const mainBalance = mainWalletBalance;
   const cryptoTwin = credits.crypto + credits.twin;
@@ -503,7 +503,7 @@ export default function InvoicePage() {
                   </div>
                 )}
 
-                {/* توزیع سرمایه — زیر مجموعه مبلغ کل */}
+                {/* Capital distribution — subset of total amount */}
                 <div className="space-y-2 pt-3 border-t border-primary/20">
                   <h3 className="font-semibold text-sm">توزیع سرمایه:</h3>
                   <div className="space-y-2">
@@ -527,7 +527,7 @@ export default function InvoicePage() {
               </div>
             </div>
 
-            {/* کیف پول اصلی */}
+            {/* Main wallet */}
             {walletRequired > 0 && (
               <>
                 <div className="rounded-xl border border-border bg-muted/30 px-4 py-4 overflow-x-auto">
@@ -606,7 +606,7 @@ export default function InvoicePage() {
               </div>
             )}
 
-            {/* سررسید اقساط — فقط در صورت وام */}
+            {/* Installment due dates — only when loan is used */}
             {useLoan && loanDetails && installments.length > 0 && (
                 <>
                   <button
@@ -693,7 +693,7 @@ export default function InvoicePage() {
           </CardContent>
         </Card>
 
-        {/* بنر دریافت وام */}
+        {/* Loan banner */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <button
@@ -711,7 +711,7 @@ export default function InvoicePage() {
         </Card>
       </div>
 
-      {/* مودال واریز به کیف پول */}
+      {/* Deposit to wallet modal */}
       <Dialog open={isDepositModalOpen} onOpenChange={setIsDepositModalOpen}>
         <DialogContent onClose={() => setIsDepositModalOpen(false)}>
           <DialogHeader>

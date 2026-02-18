@@ -9,20 +9,20 @@ import { convertToEnglishDigits } from "@/shared/lib/number-utils";
 const NATIONAL_ID_LENGTH = 10;
 
 export interface VideoVerificationNationalIdStepProps {
-  /** مقدار اولیه کد ملی (مثلاً از state والد) */
+  /** Initial national ID (e.g. from parent state) */
   value?: string;
-  /** وقتی کاربر ادامه می‌دهد، کد ملی معتبر پاس داده می‌شود */
+  /** When user continues, valid national ID is passed */
   onContinue: (nationalId: string) => void;
-  /** متن دکمه ادامه */
+  /** Continue button label */
   continueLabel?: string;
-  /** برای بازگشت به مرحله قبل */
+  /** Go back to previous step */
   onBack?: () => void;
   backLabel?: string;
 }
 
 /**
- * ماژول احراز هویت ویدیویی — مرحله ۱: وارد کردن کد ملی
- * با هینت تطابق با دارنده شماره همراه و ولیدیشن ۱۰ رقم.
+ * Video verification — step 1: enter national ID.
+ * Hint: must match mobile holder; validated as 10 digits.
  */
 export function VideoVerificationNationalIdStep({
   value = "",

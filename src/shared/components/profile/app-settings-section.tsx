@@ -33,7 +33,7 @@ export function AppSettingsSection({ lastActivity }: AppSettingsSectionProps) {
       icon: Info,
       label: t("about"),
       onClick: () => {
-        // TODO: Navigate to about page or show modal
+        // TODO(phase2): Navigate to about page or show modal
         console.log("About clicked");
       },
     },
@@ -98,7 +98,7 @@ export function AppSettingsSection({ lastActivity }: AppSettingsSectionProps) {
             variant="ghost"
             className="w-full justify-start items-center"
             onClick={() => {
-              // TODO: Navigate to activity history page
+              // TODO(phase2): Navigate to activity history page
               console.log("Activity history clicked");
             }}
           >

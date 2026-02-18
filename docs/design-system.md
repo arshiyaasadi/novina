@@ -1,51 +1,51 @@
-# سیستم طراحی
+# Design system
 
-## رنگ‌ها و تم‌ها
+## Colors and themes
 
-پروژه از CSS variables برای مدیریت رنگ‌ها استفاده می‌کند که در `src/app/globals.css` تعریف شده‌اند.
+The project uses CSS variables for colors, defined in `src/app/globals.css`.
 
-### رنگ‌های اصلی
+### Main colors
 
-- **Primary**: `hsl(var(--primary))` - رنگ اصلی پروژه
-- **Secondary**: `hsl(var(--secondary))` - رنگ ثانویه
-- **Accent**: `hsl(var(--accent))` - رنگ تاکیدی
-- **Destructive**: `hsl(var(--destructive))` - برای عملیات‌های خطرناک
+- **Primary**: `hsl(var(--primary))` — main brand color
+- **Secondary**: `hsl(var(--secondary))` — secondary color
+- **Accent**: `hsl(var(--accent))` — accent color
+- **Destructive**: `hsl(var(--destructive))` — for destructive actions
 
-### تم‌ها
+### Themes
 
-پروژه از دو تم پشتیبانی می‌کند:
-- **Light Mode**: تم روشن (پیش‌فرض)
-- **Dark Mode**: تم تاریک
+Two themes are supported:
+- **Light mode**: default
+- **Dark mode**
 
-تم‌ها با `next-themes` مدیریت می‌شوند.
+Themes are managed with `next-themes`.
 
 ## Typography
 
-### فونت
+### Font
 
-از فونت **IRANSans** استفاده می‌شود که در `public/fonts/IRANSans/Iransansx.css` تعریف شده و در `globals.css` import شده است. این فونت به صورت پیش‌فرض در تمام پروژه اعمال می‌شود.
+**IRANSans** is used, defined in `public/fonts/IRANSans/Iransansx.css` and imported in `globals.css`. It is applied by default across the project.
 
-### اندازه‌های متن
+### Text sizes
 
 - `text-xs`: 0.75rem (12px)
 - `text-sm`: 0.875rem (14px)
-- `text-base`: 1rem (16px) - پیش‌فرض
+- `text-base`: 1rem (16px) — default
 - `text-lg`: 1.125rem (18px)
 - `text-xl`: 1.25rem (20px)
 - `text-2xl`: 1.5rem (24px)
 - `text-3xl`: 1.875rem (30px)
 - `text-4xl`: 2.25rem (36px)
 
-### وزن فونت
+### Font weight
 
 - `font-normal`: 400
 - `font-medium`: 500
 - `font-semibold`: 600
 - `font-bold`: 700
 
-## Spacing System
+## Spacing
 
-از Tailwind spacing scale استفاده می‌شود:
+Use the Tailwind spacing scale:
 
 - `p-1`: 0.25rem (4px)
 - `p-2`: 0.5rem (8px)
@@ -53,67 +53,67 @@
 - `p-6`: 1.5rem (24px)
 - `p-8`: 2rem (32px)
 
-برای margin از `m-*` و برای padding از `p-*` استفاده کنید.
+Use `m-*` for margin and `p-*` for padding.
 
-## Component Guidelines
+## Component guidelines
 
-### استفاده از shadcn/ui
+### Using shadcn/ui
 
-کامپوننت‌های UI از shadcn/ui استفاده می‌کنند که در `src/shared/ui/` قرار دارند.
+UI components come from shadcn/ui and live in `src/shared/ui/`.
 
-### نمونه کامپوننت‌ها
+### Sample components
 
-نمونه کامپوننت‌های Tailwind در `src/shared/samples/` قرار دارند. می‌توانید از آن‌ها به عنوان مرجع استفاده کنید.
+Tailwind sample components are in `src/shared/samples/`. Use them as reference.
 
-### ساخت کامپوننت جدید
+### Creating a new component
 
-1. اگر کامپوننت مشابهی در `shared/samples/` وجود دارد، از آن استفاده کنید
-2. کامپوننت را به `shared/components/` یا `shared/ui/` منتقل کنید
-3. در صورت نیاز، با shadcn/ui ترکیب کنید
+1. Check for a similar component in `shared/samples/`
+2. Move or copy to `shared/components/` or `shared/ui/`
+3. Combine with shadcn/ui if needed
 
-## RTL Guidelines
+## RTL guidelines
 
-پروژه برای زبان فارسی RTL است.
+The app is RTL for Persian.
 
-### نکات مهم
+### Notes
 
-1. **Direction**: از `dir="rtl"` در HTML استفاده می‌شود
-2. **Spacing**: در RTL، `mr-*` و `ml-*` به صورت خودکار معکوس می‌شوند
-3. **Icons**: آیکون‌ها باید برای RTL مناسب باشند
-4. **Text Alignment**: از `text-right` برای RTL استفاده کنید
+1. **Direction**: Use `dir="rtl"` on HTML
+2. **Spacing**: In RTL, `mr-*` and `ml-*` are flipped automatically
+3. **Icons**: Icons should work in RTL
+4. **Text alignment**: Use `text-right` for RTL
 
-### Tailwind RTL Support
+### Tailwind RTL
 
-Tailwind به صورت خودکار RTL را پشتیبانی می‌کند. از کلاس‌های زیر استفاده کنید:
+Tailwind supports RTL. Use:
 
-- `rtl:` - برای استایل‌های RTL خاص
-- `ltr:` - برای استایل‌های LTR خاص
+- `rtl:` — RTL-specific styles
+- `ltr:` — LTR-specific styles
 
-مثال:
+Example:
 ```tsx
 <div className="mr-4 rtl:mr-0 rtl:ml-4">
   Content
 </div>
 ```
 
-## Mobile-First Design
+## Mobile-first design
 
-پروژه فقط برای موبایل طراحی شده است.
+The app is designed for mobile only.
 
 ### Breakpoints
 
-- **Mobile**: پیش‌فرض (بدون prefix)
+- **Mobile**: default (no prefix)
 - **Tablet**: `md:` (768px+)
-- **Desktop**: استفاده نشده
+- **Desktop**: not used
 
-### Best Practices
+### Best practices
 
-1. از responsive design استفاده کنید
-2. Touch targets باید حداقل 44x44px باشند
-3. از spacing مناسب برای موبایل استفاده کنید
-4. متن باید خوانا باشد (حداقل 16px)
+1. Use responsive design
+2. Touch targets at least 44x44px
+3. Use appropriate spacing for mobile
+4. Keep text readable (at least 16px)
 
-## Component Examples
+## Component examples
 
 ### Button
 
@@ -121,7 +121,7 @@ Tailwind به صورت خودکار RTL را پشتیبانی می‌کند. ا�
 import { Button } from "@/shared/ui/button";
 
 <Button variant="default" size="default">
-  کلیک کنید
+  Click
 </Button>
 ```
 
@@ -132,10 +132,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
 
 <Card>
   <CardHeader>
-    <CardTitle>عنوان</CardTitle>
+    <CardTitle>Title</CardTitle>
   </CardHeader>
   <CardContent>
-    محتوا
+    Content
   </CardContent>
 </Card>
 ```
@@ -145,13 +145,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
 ```tsx
 import { Input } from "@/shared/ui/input";
 
-<Input type="email" placeholder="ایمیل" />
+<Input type="email" placeholder="Email" />
 ```
 
 ## Accessibility
 
-1. از semantic HTML استفاده کنید
-2. Labels را برای input ها اضافه کنید
-3. از ARIA attributes استفاده کنید
-4. رنگ‌ها باید contrast مناسب داشته باشند
-
+1. Use semantic HTML
+2. Add labels to inputs
+3. Use ARIA attributes where needed
+4. Ensure sufficient color contrast

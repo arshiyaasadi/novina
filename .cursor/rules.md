@@ -1,39 +1,39 @@
-# قوانین توسعه برای Cursor AI
+# Development rules for Cursor AI
 
-## ساختار پروژه
+## Project structure
 
-این پروژه از معماری MVC + Domain-based استفاده می‌کند. هر Domain شامل:
-- `controllers/` - Route handlers
-- `services/` - Business logic
-- `repositories/` - Data access
-- `models/` - Domain models
-- `types/` - TypeScript types
+This project uses **MVC + domain-based** architecture. Each domain includes:
+- `controllers/` — Route handlers
+- `services/` — Business logic
+- `repositories/` — Data access
+- `models/` — Domain models
+- `types/` — TypeScript types
 
-## استفاده از کامپوننت‌ها
+## Using components
 
-### کامپوننت‌های shadcn/ui
+### shadcn/ui components
 
-کامپوننت‌های UI از `@/shared/ui/` استفاده کنید:
+Use UI components from `@/shared/ui/`:
 - Button
 - Input
 - Card
 - Label
-- و سایر کامپوننت‌های shadcn/ui
+- Other shadcn/ui components
 
-### نمونه کامپوننت‌ها
+### Sample components
 
-قبل از ساخت کامپوننت جدید:
-1. در `@/shared/samples/` جستجو کنید
-2. اگر نمونه مشابهی وجود دارد، از آن استفاده کنید
-3. کامپوننت را به `@/shared/components/` یا `@/shared/ui/` منتقل کنید
+Before creating a new component:
+1. Search in `@/shared/samples/`
+2. If a similar sample exists, use it
+3. Move the component to `@/shared/components/` or `@/shared/ui/`
 
-## استانداردهای کدنویسی
+## Coding standards
 
 ### TypeScript
 
-- از TypeScript strict mode استفاده کنید
-- از `any` استفاده نکنید
-- Types را در فایل `types/` هر Domain تعریف کنید
+- Use TypeScript strict mode
+- Avoid `any`
+- Define types in each domain’s `types/` folder
 
 ### Naming
 
@@ -42,7 +42,7 @@
 - Functions/Variables: camelCase
 - Constants: UPPER_SNAKE_CASE
 
-### Import Order
+### Import order
 
 1. React/Next.js
 2. Third-party libraries
@@ -50,38 +50,38 @@
 4. Relative imports
 5. Types
 
-## RTL و i18n
+## RTL and i18n
 
-### RTL Support
+### RTL support
 
-- پروژه برای فارسی RTL است
-- از `dir="rtl"` استفاده می‌شود
-- Tailwind به صورت خودکار RTL را پشتیبانی می‌کند
+- The app is RTL for Persian
+- Use `dir="rtl"`
+- Tailwind supports RTL automatically
 
-**قوانین مهم RTL:**
+**RTL rules:**
 
-1. **ترتیب دکمه‌ها**: در RTL، دکمه "بعدی" باید در سمت چپ و دکمه "قبلی"/"رد کردن" باید در سمت راست باشد
-   - استفاده از `justify-between` در flex container
-   - دکمه Next را اول در DOM قرار دهید (در RTL در سمت چپ نمایش داده می‌شود)
-   - دکمه Previous/Skip را آخر در DOM قرار دهید (در RTL در سمت راست نمایش داده می‌شود)
+1. **Button order:** In RTL, the "Next" button should be on the left and "Previous"/"Skip" on the right
+   - Use `justify-between` on the flex container
+   - Put the Next button first in the DOM (it appears on the left in RTL)
+   - Put Previous/Skip last in the DOM (they appear on the right in RTL)
 
-2. **Dots Indicator**: برای dots indicator در RTL، از `flex-row-reverse` استفاده کنید تا ترتیب بصری درست باشد
+2. **Dots indicator:** For a dots indicator in RTL, use `flex-row-reverse` so the visual order is correct
    ```tsx
    <div className="flex flex-row-reverse justify-center gap-2">
      {items.map((_, index) => (...))}
    </div>
    ```
 
-3. **ترتیب عناصر در لیست‌ها**: در RTL، اولین عنصر در سمت راست و آخرین عنصر در سمت چپ نمایش داده می‌شود
-   - برای navigation، عناصر مهم‌تر را در ابتدای لیست قرار دهید
+3. **List order:** In RTL, the first item is on the right and the last on the left
+   - For navigation, put the most important items at the start of the list
 
 ### i18n
 
-- از `next-intl` استفاده کنید
-- متن‌ها را در `@/i18n/locales/fa.json` قرار دهید
-- از `useTranslations()` hook استفاده کنید
+- Use `next-intl`
+- Put copy in `@/i18n/locales/fa.json`
+- Use the `useTranslations()` hook
 
-مثال:
+Example:
 ```tsx
 import { useTranslations } from 'next-intl';
 
@@ -89,50 +89,49 @@ const t = useTranslations('common');
 <p>{t('welcome')}</p>
 ```
 
-## UI Development
+## UI development
 
-### Mobile-First
+### Mobile-first
 
-- پروژه فقط برای موبایل طراحی شده است
-- از responsive design استفاده کنید
-- Touch targets حداقل 44x44px
+- The app is designed for mobile only
+- Use responsive design
+- Touch targets at least 44x44px
 
-### Design System
+### Design system
 
-- از رنگ‌های CSS variables استفاده کنید
-- از spacing system Tailwind استفاده کنید
-- از typography system استفاده کنید
+- Use CSS variables for colors
+- Use Tailwind spacing and typography
 
-### تم‌ها
+### Themes
 
-- از `next-themes` برای مدیریت تم استفاده می‌شود
-- از CSS variables برای رنگ‌ها استفاده کنید
-- Dark/Light mode پشتیبانی می‌شود
+- Use `next-themes` for theme handling
+- Use CSS variables for colors
+- Dark/Light mode is supported
 
-## Domain Development
+## Domain development
 
-### ساختار Domain
+### Domain structure
 
-هر Domain باید شامل:
+Each domain should have:
 1. **Models**: Domain entities
 2. **Repositories**: Data access
 3. **Services**: Business logic
 4. **Controllers**: API handlers
 5. **Types**: TypeScript interfaces
 
-### جریان داده
+### Data flow
 
 ```
 Request → Controller → Service → Repository → Database
 ```
 
-### Error Handling
+### Error handling
 
-- از try-catch استفاده کنید
-- از logger برای ثبت خطاها استفاده کنید
-- Error messages را به فارسی برگردانید
+- Use try/catch where appropriate
+- Use the logger for errors
+- Return user-facing error messages via i18n (app locale)
 
-مثال:
+Example:
 ```typescript
 import { logger } from "@/infrastructure/logging";
 
@@ -148,33 +147,33 @@ try {
 
 ### Prisma
 
-- از Prisma Client استفاده کنید
-- Queries را در Repository layer قرار دهید
-- از Prisma generated types استفاده کنید
+- Use the Prisma client
+- Keep queries in the repository layer
+- Use Prisma-generated types
 
 ### Migrations
 
-- همیشه از migrations استفاده کنید
-- Schema را در `prisma/schema.prisma` تعریف کنید
+- Always use migrations
+- Define the schema in `prisma/schema.prisma`
 
 ## Logging
 
-- از `@/infrastructure/logging` استفاده کنید
-- Logs در `./logs/app.log` ذخیره می‌شوند
-- از log levels مناسب استفاده کنید (info, warn, error)
+- Use `@/infrastructure/logging`
+- Logs are written to `./logs/app.log`
+- Use appropriate levels (info, warn, error)
 
-## Best Practices
+## Best practices
 
-1. **Code Reuse**: کدهای مشترک را در `shared/` قرار دهید
-2. **Type Safety**: از TypeScript به درستی استفاده کنید
-3. **Error Handling**: همیشه error handling داشته باشید
-4. **Logging**: رویدادهای مهم را لاگ کنید
-5. **Documentation**: کدهای پیچیده را مستند کنید
-6. **Testing**: (بعداً اضافه می‌شود)
+1. **Code reuse:** Put shared code in `shared/`
+2. **Type safety:** Use TypeScript consistently
+3. **Error handling:** Always handle errors
+4. **Logging:** Log important events
+5. **Documentation:** Document complex code
+6. **Testing:** (To be added later)
 
-## مثال‌ها
+## Examples
 
-### ساخت API Route
+### API route
 
 ```typescript
 // src/app/api/auth/login/route.ts
@@ -188,7 +187,7 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-### ساخت Service
+### Service
 
 ```typescript
 // src/domains/auth/services/auth.service.ts
@@ -208,7 +207,7 @@ export class AuthService {
 }
 ```
 
-### ساخت کامپوننت
+### Component
 
 ```tsx
 // src/shared/components/example.tsx
@@ -225,4 +224,3 @@ export function ExampleComponent() {
   );
 }
 ```
-

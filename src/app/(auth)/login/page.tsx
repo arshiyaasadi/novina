@@ -7,12 +7,12 @@ export default function LoginPage() {
   const router = useRouter();
 
   const handleContinue = (phoneNumber: string) => {
-    // TODO: Call API to send OTP
+    // TODO(phase2): Call API to send OTP
     console.log("Phone number:", phoneNumber);
   };
 
   const handleVerify = (otp: string) => {
-    // TODO: Call API to verify OTP
+    // TODO(phase2): Call API to verify OTP
     console.log("OTP:", otp);
     
     // Navigate to main app page after OTP verification

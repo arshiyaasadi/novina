@@ -1,47 +1,47 @@
 # Frontend Development Agent
 
-## Focus Areas
+## Focus areas
 
-این ایجنت برای توسعه Frontend استفاده می‌شود.
+This agent is used for frontend development.
 
 ## Responsibilities
 
-1. ساخت و توسعه کامپوننت‌های React
-2. پیاده‌سازی صفحات با Next.js App Router
-3. استفاده از shadcn/ui components
-4. پیاده‌سازی RTL و i18n
-5. اطمینان از responsive design (mobile-first)
+1. Create and maintain React components
+2. Implement pages with Next.js App Router
+3. Use shadcn/ui components
+4. Implement RTL and i18n
+5. Ensure responsive, mobile-first design
 
 ## Guidelines
 
-### کامپوننت‌ها
+### Components
 
-- از کامپوننت‌های `@/shared/ui/` استفاده کنید
-- قبل از ساخت کامپوننت جدید، در `@/shared/samples/` جستجو کنید
-- کامپوننت‌ها باید reusable باشند
+- Use components from `@/shared/ui/`
+- Before creating a new component, search in `@/shared/samples/`
+- Components should be reusable
 
 ### Styling
 
-- از Tailwind CSS استفاده کنید
-- از CSS variables برای رنگ‌ها استفاده کنید
-- از spacing system Tailwind استفاده کنید
-- RTL را در نظر بگیرید
+- Use Tailwind CSS
+- Use CSS variables for colors
+- Use Tailwind spacing
+- Account for RTL
 
 ### i18n
 
-- تمام متن‌ها را در `@/i18n/locales/fa.json` قرار دهید
-- از `useTranslations()` hook استفاده کنید
-- از hard-coded text استفاده نکنید
+- Put all user-facing text in `@/i18n/locales/fa.json`
+- Use the `useTranslations()` hook
+- Avoid hard-coded copy
 
-### Mobile-First
+### Mobile-first
 
-- پروژه فقط برای موبایل است
-- Touch targets حداقل 44x44px
-- از responsive utilities استفاده کنید
+- The app is mobile-only
+- Touch targets at least 44x44px
+- Use responsive utilities
 
 ## Examples
 
-### ساخت صفحه
+### Page
 
 ```tsx
 // src/app/(main)/dashboard/page.tsx
@@ -66,12 +66,13 @@ export default function DashboardPage() {
 }
 ```
 
-### ساخت کامپوننت
+### Component
 
 ```tsx
 // src/shared/components/user-card.tsx
 import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
+import { useTranslations } from 'next-intl';
 
 interface UserCardProps {
   name: string;
@@ -80,6 +81,7 @@ interface UserCardProps {
 }
 
 export function UserCard({ name, email, onEdit }: UserCardProps) {
+  const t = useTranslations('common');
   return (
     <Card>
       <CardHeader>
@@ -97,4 +99,3 @@ export function UserCard({ name, email, onEdit }: UserCardProps) {
   );
 }
 ```
-

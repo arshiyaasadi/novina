@@ -36,7 +36,7 @@ export function NationalIdModal({
     if (!nationalId.trim() || !username.trim()) return;
 
     setIsSubmitting(true);
-    // TODO: Call API to verify national ID
+    // TODO(phase2): Call API to verify national ID
     // For now, simulate API call
     setTimeout(() => {
       onSubmit(nationalId, username);

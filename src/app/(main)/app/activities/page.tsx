@@ -169,7 +169,7 @@ export default function ActivitiesPage() {
     });
   });
 
-  // Add trade orders (تاریخچه معاملات)
+  // Add trade orders (trade history)
   const tradeOrders = getTradeOrders();
   tradeOrders.forEach((order) => {
     allActivities.push({

@@ -1,54 +1,54 @@
-# کاربر لاگین‌شده و DTO گلوبال
+# Logged-in user and global DTO
 
-## تعریف
+## Definition
 
-کاربری که وارد اپلیکیشن شده است با یک **DTO (Data Transfer Object)** واحد در سطح گلوبال نمایش داده می‌شود. این DTO در **Zustand store** (`useUserStore`) نگهداری می‌شود و در صورت نیاز در `localStorage` با کلید `loggedInUser` ذخیره می‌شود.
+The user who has signed in is represented by a single **DTO (Data Transfer Object)** at the global level. This DTO is held in the **Zustand store** (`useUserStore`) and optionally persisted in `localStorage` under the key `loggedInUser`.
 
-## فیلدهای LoggedInUserDto
+## LoggedInUserDto fields
 
-| فیلد        | نوع   | توضیح                          |
-|-------------|------|---------------------------------|
-| `mobile`    | string | شماره همراه                    |
-| `nationalId`| string | کد ملی                         |
-| `firstName` | string | نام                            |
-| `lastName`  | string | نام خانوادگی                   |
-| `birthDate` | string | تاریخ تولد به صورت **شمسی** (مثلاً `1370/05/15`) |
+| Field         | Type   | Description                                      |
+|---------------|--------|--------------------------------------------------|
+| `mobile`      | string | Mobile number                                    |
+| `nationalId`  | string | National ID                                      |
+| `firstName`   | string | First name                                       |
+| `lastName`    | string | Last name                                        |
+| `birthDate`   | string | Birth date in **Shamsi** format (e.g. `1370/05/15`) |
 
-ورود تاریخ تولد در UI به صورت شمسی (سال/ماه/روز) انجام می‌شود.
+Birth date is entered in the UI in Shamsi (year/month/day).
 
-## محل پیاده‌سازی
+## Implementation locations
 
-- **نوع (TypeScript):** `src/domains/auth/types/index.ts` — `LoggedInUserDto`
-- **استور (Zustand):** `src/shared/store/user-store.ts` — `useUserStore`
-  - `user`: مقدار فعلی کاربر یا `null`
-  - `setUser(user)`: تنظیم کاربر و ذخیره در localStorage
-  - `clearUser()`: خالی کردن کاربر و حذف از localStorage
-  - `hydrate()`: خواندن از localStorage و پر کردن استور (مثلاً بعد از لود صفحه)
+- **Type (TypeScript):** `src/domains/auth/types/index.ts` — `LoggedInUserDto`
+- **Store (Zustand):** `src/shared/store/user-store.ts` — `useUserStore`
+  - `user`: current user or `null`
+  - `setUser(user)`: set user and persist to localStorage
+  - `clearUser()`: clear user and remove from localStorage
+  - `hydrate()`: read from localStorage and populate the store (e.g. after page load)
 
-## استفاده در کامپوننت‌ها
+## Usage in components
 
 ```ts
 import { useUserStore } from "@/shared/store/user-store";
 
-// خواندن
+// Read
 const user = useUserStore((s) => s.user);
 
-// به‌روزرسانی بعد از لاگین یا تکمیل احراز هویت
+// Update after login or completing verification
 useUserStore.getState().setUser({
   mobile: "09123456789",
   nationalId: "1234567890",
-  firstName: "علی",
-  lastName: "احمدی",
+  firstName: "Ali",
+  lastName: "Ahmadi",
   birthDate: "1370/05/15",
 });
 
-// خروج
+// Logout
 useUserStore.getState().clearUser();
 ```
 
-## هیدرات کردن استور
+## Hydrating the store
 
-در صفحاتی که به کاربر لاگین‌شده نیاز دارند (مثلاً پروفایل، داشبورد)، یک بار در `useEffect` فراخوانی کنید:
+On pages that need the logged-in user (e.g. profile, dashboard), call hydrate once in `useEffect`:
 
 ```ts
 useEffect(() => {
@@ -56,4 +56,4 @@ useEffect(() => {
 }, []);
 ```
 
-با این کار اگر کاربر در تب دیگری یا در رفرش قبلی لاگین کرده باشد، مقدار از localStorage خوانده و در استور قرار می‌گیرد.
+This ensures that if the user logged in in another tab or before a refresh, the value is read from localStorage and the store is updated.
